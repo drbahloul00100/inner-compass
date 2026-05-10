@@ -21,7 +21,7 @@ export default function LikertInput({
   const { lang } = useLanguage();
 
   return (
-    <fieldset className="space-y-3">
+    <fieldset className="space-y-2.5">
       <legend className="sr-only">Select your response</legend>
       {SCALE.map((s) => {
         const isSelected = value === s;
@@ -30,10 +30,10 @@ export default function LikertInput({
           <label
             key={s}
             htmlFor={inputId}
-            className={`flex items-start gap-4 p-4 border rounded-md cursor-pointer transition-all ${
+            className={`group flex items-start gap-4 p-4 md:p-5 border rounded-md cursor-pointer transition-all duration-200 ease-smooth border-s-4 ${
               isSelected
-                ? "border-accent bg-accent/5"
-                : "border-line bg-paper-card hover:border-ink-mute"
+                ? "border-line bg-accent/[0.04] border-s-accent"
+                : "border-line bg-paper-card border-s-transparent hover:bg-paper-veil hover:border-line-strong"
             }`}
           >
             <input
@@ -45,7 +45,11 @@ export default function LikertInput({
               onChange={() => onChange(s)}
               className="mt-1 accent-accent"
             />
-            <span className="text-ink leading-relaxed">
+            <span
+              className={`leading-relaxed transition-colors duration-200 ${
+                isSelected ? "text-ink font-medium" : "text-ink-soft group-hover:text-ink"
+              }`}
+            >
               {getLocalizedText(scaleLabels[s], lang)}
             </span>
           </label>

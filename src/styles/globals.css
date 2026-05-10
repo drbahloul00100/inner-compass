@@ -7,6 +7,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     scroll-behavior: smooth;
+    text-rendering: optimizeLegibility;
   }
 
   body {
@@ -20,10 +21,13 @@
   h4,
   h5,
   h6 {
-    font-family: "Charter", "Georgia", serif;
+    font-family: "Source Serif 4", "Charter", "Georgia", serif;
+    font-feature-settings: "ss01", "kern";
   }
 
-  /* Arabic headings use a sans-serif since Charter/Georgia have no Arabic glyphs */
+  /* Arabic headings stay sans — Source Serif 4 / Charter / Georgia have no
+     Arabic glyphs, so without this override the browser would fall back to a
+     system Arabic serif that often clashes with the body sans. */
   [dir="rtl"] h1,
   [dir="rtl"] h2,
   [dir="rtl"] h3,
@@ -31,11 +35,14 @@
   [dir="rtl"] h5,
   [dir="rtl"] h6 {
     font-family: "IBM Plex Sans Arabic", "Noto Sans Arabic", system-ui, sans-serif;
+    font-feature-settings: normal;
   }
 
-  /* Improve focus visibility for keyboard users */
+  /* Refined focus: 2px ring with 3px offset, slight rounding for non-square
+     elements. Visible on keyboard nav, invisible on mouse click. */
   :focus-visible {
     outline: 2px solid theme("colors.accent.DEFAULT");
-    outline-offset: 2px;
+    outline-offset: 3px;
+    border-radius: 2px;
   }
 }

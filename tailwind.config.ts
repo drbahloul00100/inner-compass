@@ -17,27 +17,37 @@ const config: Config = {
         },
         paper: {
           DEFAULT: "#fafaf7",
-          warm: "#f4f3ee",
+          warm: "#f1efe8",
+          veil: "#efece4",
           card: "#ffffff",
         },
-        // Single deep accent — a considered, calm blue
+        // A single deep, considered accent
         accent: {
-          DEFAULT: "#2c4a6b",
-          deep: "#1f3650",
+          DEFAULT: "#25405e",
+          deep: "#1c3047",
           soft: "#4a6783",
         },
-        line: "#e8e6df",
+        line: {
+          DEFAULT: "#e8e6df",
+          strong: "#d8d5cc",
+        },
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "-apple-system", "sans-serif"],
-        serif: ["Charter", "Georgia", "serif"],
+        sans: ["Inter", "IBM Plex Sans Arabic", "system-ui", "-apple-system", "sans-serif"],
+        serif: ["Source Serif 4", "Charter", "Georgia", "serif"],
       },
       maxWidth: {
         prose: "65ch",
-        reading: "42rem",
+        reading: "44rem",
       },
       spacing: {
         "page-y": "5rem",
+      },
+      boxShadow: {
+        card: "0 1px 2px rgba(0,0,0,0.04), 0 8px 24px -12px rgba(0,0,0,0.08)",
+      },
+      transitionTimingFunction: {
+        smooth: "cubic-bezier(0.4, 0, 0.2, 1)",
       },
     },
   },

@@ -28,7 +28,7 @@ export default function QuestionRenderer({
   // Item prompt — whitespace-pre-line preserves newlines from JSON.
   // Falls back to English if the active language has no translation yet.
   const prompt = (
-    <p className="text-lg md:text-xl text-ink leading-relaxed mb-8 whitespace-pre-line">
+    <p className="text-lg md:text-xl text-ink leading-[1.65] mb-8 md:mb-10 whitespace-pre-line">
       {getLocalizedText(question.user_facing_item, lang)}
     </p>
   );

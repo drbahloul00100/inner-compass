@@ -205,15 +205,15 @@ export default function AssessmentPage() {
 
   return (
     <Layout hideNav title="Assessment" hideFooter>
-      <div className="min-h-screen flex flex-col">
-        <header className="border-b border-line bg-paper">
-          <div className="max-w-reading mx-auto px-6 py-5">
+      <div className="min-h-screen flex flex-col bg-paper">
+        <header className="border-b border-line bg-paper/90 backdrop-blur-sm sticky top-0 z-10">
+          <div className="max-w-reading mx-auto px-5 sm:px-6 py-4 sm:py-5">
             <ProgressBar current={currentIndex + 1} total={TOTAL_ITEMS} />
           </div>
         </header>
 
-        <main className="flex-1 max-w-reading mx-auto w-full px-6 py-12 md:py-16">
-          <Card>
+        <main className="flex-1 max-w-reading mx-auto w-full px-5 sm:px-6 py-10 md:py-16">
+          <Card variant="elevated">
             <div ref={questionAreaRef} tabIndex={-1} className="outline-none">
               <QuestionRenderer
                 key={question.id}
@@ -228,13 +228,13 @@ export default function AssessmentPage() {
             <p
               role="alert"
               aria-live="polite"
-              className="mt-6 text-sm text-accent-deep bg-accent/5 border border-accent/20 rounded-md px-4 py-3"
+              className="mt-6 text-sm text-accent-deep bg-accent/[0.06] border border-accent/25 rounded-md px-4 py-3 leading-relaxed"
             >
               {validationError}
             </p>
           )}
 
-          <div className="mt-10 flex items-center justify-between">
+          <div className="mt-8 md:mt-10 flex items-center justify-between gap-3">
             <Button
               variant="ghost"
               onClick={handlePrevious}
@@ -243,7 +243,7 @@ export default function AssessmentPage() {
               {t.assessment.prev}
             </Button>
 
-            <Button onClick={handleNext}>
+            <Button onClick={handleNext} size="lg">
               {isLast ? t.assessment.finish : t.assessment.next}
             </Button>
           </div>

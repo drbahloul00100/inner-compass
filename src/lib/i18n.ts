@@ -27,6 +27,7 @@ export interface Translations {
   };
   footer: {
     copyright: (year: number) => string;
+    tagline: string;
     about: string;
     privacy: string;
     terms: string;
@@ -40,6 +41,26 @@ export interface Translations {
     measures_p1: string;
     measures_p2: string;
     measures_p3: string;
+    why_title: string;
+    why_p1: string;
+    why_p2: string;
+    reveals_title: string;
+    reveals_intro: string;
+    reveals_item1_title: string;
+    reveals_item1_body: string;
+    reveals_item2_title: string;
+    reveals_item2_body: string;
+    reveals_item3_title: string;
+    reveals_item3_body: string;
+    reveals_item4_title: string;
+    reveals_item4_body: string;
+    how_title: string;
+    how_step1_title: string;
+    how_step1_body: string;
+    how_step2_title: string;
+    how_step2_body: string;
+    how_step3_title: string;
+    how_step3_body: string;
     expect_title: string;
     expect_time_label: string;
     expect_time_body: string;
@@ -49,6 +70,8 @@ export interface Translations {
     expect_output_body: string;
     expect_privacy_label: string;
     expect_privacy_body: string;
+    final_cta_title: string;
+    final_cta_body: string;
   };
   about: {
     title: string;
@@ -57,6 +80,8 @@ export interface Translations {
     how_title: string;
     how_p1: string;
     how_p2: string;
+    who_title: string;
+    who_p1: string;
     not_title: string;
     not_p1: string;
     privacy_title: string;
@@ -65,6 +90,9 @@ export interface Translations {
   };
   start: {
     title: string;
+    pill_minutes: string;
+    pill_questions: string;
+    pill_saved: string;
     p1: string;
     p2: string;
     p3: string;

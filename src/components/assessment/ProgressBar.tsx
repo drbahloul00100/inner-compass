@@ -19,13 +19,13 @@ export default function ProgressBar({ current, total }: ProgressBarProps) {
       aria-valuemax={total}
       aria-label={label}
     >
-      <div className="flex items-center justify-between mb-2 text-xs text-ink-mute">
+      <div className="flex items-center justify-between mb-2.5 text-xs font-medium text-ink-mute tracking-wide">
         <span>{label}</span>
-        <span>{percent}%</span>
+        <span className="tabular-nums">{percent}%</span>
       </div>
-      <div className="h-1 bg-line rounded-full overflow-hidden">
+      <div className="h-1.5 bg-line rounded-full overflow-hidden">
         <div
-          className="h-full bg-accent transition-all duration-300 ease-out"
+          className="h-full bg-accent rounded-full transition-all duration-500 ease-smooth"
           style={{ width: `${percent}%` }}
         />
       </div>

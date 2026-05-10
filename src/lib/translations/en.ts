@@ -8,6 +8,7 @@ export const en: Translations = {
   },
   footer: {
     copyright: (year) => `© ${year} Inner Compass`,
+    tagline: "A self-awareness assessment for thoughtful adults.",
     about: "About",
     privacy: "Privacy",
     terms: "Terms",
@@ -26,6 +27,34 @@ export const en: Translations = {
       "Across 84 carefully written items, it measures your pressure signatures (what tends to appear when you are stretched), your inner drivers (the deeper hungers shaping your choices), and the way these combine into a recognizable pattern.",
     measures_p3:
       "The result is a written report — direct, warm, and specific — designed to be read once carefully and revisited later.",
+    why_title: "Why pressure patterns matter",
+    why_p1:
+      "Most personality systems describe who you are. They miss the more useful question: who you become when capacity is exceeded. The version of you under pressure is the one that makes the costly decisions, has the difficult conversations, and holds the team or the relationship together — or doesn't.",
+    why_p2:
+      "These patterns are durable. They were forged early and rehearsed daily. They are also legible — once you can see them, you can choose with them in view.",
+    reveals_title: "What the report reveals",
+    reveals_intro: "Your written report covers four dimensions:",
+    reveals_item1_title: "Pressure signatures",
+    reveals_item1_body:
+      "The recurring shapes your behavior takes when capacity is exceeded — what tends to appear, in what order, and at what cost.",
+    reveals_item2_title: "Inner drivers",
+    reveals_item2_body:
+      "The deeper hungers — for control, for mattering, for safety — that quietly shape your choices.",
+    reveals_item3_title: "Context modulation",
+    reveals_item3_body:
+      "How your patterns shift between work and close relationships — where you hold composure and where you don't.",
+    reveals_item4_title: "Recovery and depletion",
+    reveals_item4_body:
+      "The cost of holding it together, and how long it takes you to return to yourself afterward.",
+    how_title: "How it works",
+    how_step1_title: "Take the assessment",
+    how_step1_body: "84 behavioral questions, about 15 minutes. Saved automatically as you go.",
+    how_step2_title: "Answer honestly",
+    how_step2_body:
+      "From real behavior, not self-image. Your accuracy is the report's accuracy.",
+    how_step3_title: "Read your report",
+    how_step3_body:
+      "A direct, specific account of how you behave under pressure — and why.",
     expect_title: "What to expect",
     expect_time_label: "Time required:",
     expect_time_body: "about 15 minutes of honest answering.",
@@ -36,6 +65,9 @@ export const en: Translations = {
     expect_privacy_label: "Privacy:",
     expect_privacy_body:
       "your responses are private to you. They are never sold or shared.",
+    final_cta_title: "Ready when you are.",
+    final_cta_body:
+      "Take the assessment in a moment when you can be honest with yourself. The report waits.",
   },
   about: {
     title: "About Inner Compass",
@@ -46,6 +78,9 @@ export const en: Translations = {
       "The assessment is 84 questions. Most are behavioral — they ask what you would actually do in a specific situation, not how you see yourself. A few are calibration questions designed to help the system recognize when answers may be coming from self-image rather than self-observation.",
     how_p2:
       "Once you complete the assessment, your responses are scored against a model of pressure signatures and inner drivers, then translated into a written report.",
+    who_title: "Who it's for",
+    who_p1:
+      "Inner Compass is built for thoughtful adults — leaders, professionals, people in serious work or serious relationships — who suspect there is more to know about themselves than the polished version they normally present.",
     not_title: "What it is not",
     not_p1:
       "Inner Compass is not a clinical instrument. It does not diagnose, classify, or pathologize. It is a tool for self-awareness — for thoughtful adults who want a more honest map of themselves than most assessments provide.",
@@ -56,6 +91,9 @@ export const en: Translations = {
   },
   start: {
     title: "Before you begin",
+    pill_minutes: "About 15 minutes",
+    pill_questions: "84 questions",
+    pill_saved: "Auto-saved on this device",
     p1: "The assessment takes about 15 minutes. Some questions ask about specific situations and how you would actually respond. Others ask you to reflect on patterns you have noticed in yourself.",
     p2: "The accuracy of your report depends on the honesty of your answers. Where possible, take the assessment in a moment when you are not rushed — and ideally not on a day when you are performing at your highest. The point of Inner Compass is to see the version of you that appears when your capacity is stretched, and that version is most accessible when you are tired or in a real moment of life rather than at peak.",
     p3: "You can navigate back to change earlier answers. Your progress is saved automatically on this device.",

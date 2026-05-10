@@ -25,15 +25,23 @@ export default function TwoPartInput({
   };
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-12">
       {subPrompts.map((sub, index) => (
-        <div key={sub.sub_id}>
-          <div className="mb-4 flex items-baseline gap-3">
-            <span className="text-xs font-medium uppercase tracking-wide text-accent">
+        <div
+          key={sub.sub_id}
+          className={
+            index > 0
+              ? "pt-12 border-t border-line"
+              : ""
+          }
+        >
+          <div className="mb-5 flex items-center gap-3">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-accent">
               {t.two_part.part_label(index + 1, subPrompts.length)}
             </span>
+            <span className="h-px flex-1 bg-line" aria-hidden />
           </div>
-          <p className="text-base text-ink mb-5 leading-relaxed">
+          <p className="text-base md:text-lg text-ink mb-6 leading-relaxed">
             {getLocalizedText(sub.prompt, lang)}
           </p>
           <MultipleChoiceInput
