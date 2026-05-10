@@ -1,4 +1,6 @@
 import type { MultipleChoiceOption } from "@/types/question";
+import { useLanguage } from "@/context/LanguageContext";
+import { getLocalizedText } from "@/lib/i18n";
 
 interface MultipleChoiceInputProps {
   options: MultipleChoiceOption[];
@@ -15,7 +17,9 @@ export default function MultipleChoiceInput({
   itemId,
   fieldName,
 }: MultipleChoiceInputProps) {
+  const { lang } = useLanguage();
   const name = fieldName ?? `q${itemId}-mc`;
+
   return (
     <fieldset className="space-y-3">
       <legend className="sr-only">Choose one option</legend>
@@ -41,7 +45,9 @@ export default function MultipleChoiceInput({
               onChange={() => onChange(option.option_id)}
               className="mt-1 accent-accent"
             />
-            <span className="text-ink leading-relaxed">{option.label}</span>
+            <span className="text-ink leading-relaxed">
+              {getLocalizedText(option.label, lang)}
+            </span>
           </label>
         );
       })}

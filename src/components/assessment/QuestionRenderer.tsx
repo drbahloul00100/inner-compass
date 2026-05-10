@@ -4,6 +4,8 @@ import type {
   ResponseAnswer,
   TwoPartAnswer,
 } from "@/types/response";
+import { useLanguage } from "@/context/LanguageContext";
+import { getLocalizedText } from "@/lib/i18n";
 import LikertInput from "./LikertInput";
 import DirectionalLikertInput from "./DirectionalLikertInput";
 import MultipleChoiceInput from "./MultipleChoiceInput";
@@ -21,10 +23,13 @@ export default function QuestionRenderer({
   value,
   onChange,
 }: QuestionRendererProps) {
-  // Item prompt — rendered with whitespace-pre-line to preserve newlines from JSON
+  const { lang } = useLanguage();
+
+  // Item prompt — whitespace-pre-line preserves newlines from JSON.
+  // Falls back to English if the active language has no translation yet.
   const prompt = (
     <p className="text-lg md:text-xl text-ink leading-relaxed mb-8 whitespace-pre-line">
-      {question.user_facing_item}
+      {getLocalizedText(question.user_facing_item, lang)}
     </p>
   );
 
@@ -95,7 +100,6 @@ export default function QuestionRenderer({
       );
 
     default: {
-      // Exhaustiveness check
       const _exhaustive: never = question;
       return _exhaustive;
     }

@@ -1,4 +1,5 @@
 import type { FreeTextOptions } from "@/types/question";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface FreeTextInputProps {
   options: FreeTextOptions;
@@ -13,6 +14,7 @@ export default function FreeTextInput({
   onChange,
   itemId,
 }: FreeTextInputProps) {
+  const { t } = useLanguage();
   const current = value ?? "";
 
   return (
@@ -23,7 +25,7 @@ export default function FreeTextInput({
         onChange={(e) => onChange(e.target.value)}
         rows={5}
         maxLength={options.soft_max_chars}
-        placeholder="Take your time."
+        placeholder={t.free_text.placeholder}
         className="w-full p-4 border border-line rounded-md bg-paper-card text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent transition-colors resize-y"
         aria-describedby={`q${itemId}-free-text-help`}
       />
@@ -31,11 +33,10 @@ export default function FreeTextInput({
         id={`q${itemId}-free-text-help`}
         className="text-sm text-ink-mute italic"
       >
-        One or two honest sentences is enough. This will not appear in your
-        report.
+        {t.free_text.help}
       </p>
       <p className="text-xs text-ink-faint">
-        {current.length} / {options.soft_max_chars} characters
+        {t.free_text.char_count(current.length, options.soft_max_chars)}
       </p>
     </div>
   );

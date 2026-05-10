@@ -5,6 +5,7 @@ import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import ProgressBar from "@/components/assessment/ProgressBar";
 import QuestionRenderer from "@/components/assessment/QuestionRenderer";
+import { useLanguage } from "@/context/LanguageContext";
 import { QUESTIONS, TOTAL_ITEMS } from "@/lib/questions";
 import {
   getOrCreateSession,
@@ -19,6 +20,7 @@ import type { ResponseAnswer, TwoPartAnswer } from "@/types/response";
 export default function AssessmentPage() {
   const router = useRouter();
   const { session_id } = router.query;
+  const { t } = useLanguage();
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentAnswer, setCurrentAnswer] = useState<
@@ -74,7 +76,7 @@ export default function AssessmentPage() {
     return (
       <Layout hideNav>
         <div className="max-w-reading mx-auto px-6 py-20 text-ink-mute">
-          Loading…
+          {t.assessment.loading}
         </div>
       </Layout>
     );
@@ -85,7 +87,7 @@ export default function AssessmentPage() {
     return (
       <Layout>
         <div className="max-w-reading mx-auto px-6 py-20">
-          Something went wrong. Please refresh the page.
+          {t.assessment.error}
         </div>
       </Layout>
     );
@@ -94,13 +96,8 @@ export default function AssessmentPage() {
   // Determine whether the current question has been adequately answered.
   // Item #32 (free_text) is always considered answered — blank is allowed.
   const isAnswered = (): boolean => {
-    if (question.answer_type === "free_text") {
-      // Free-text items never block advance; blank is allowed.
-      return true;
-    }
-
+    if (question.answer_type === "free_text") return true;
     if (currentAnswer === undefined) return false;
-
     if (question.answer_type === "two_part_multiple_choice") {
       const tpa = currentAnswer as TwoPartAnswer;
       const subs = question.options.sub_prompts;
@@ -108,12 +105,10 @@ export default function AssessmentPage() {
         (s) => typeof tpa[s.sub_id] === "string" && tpa[s.sub_id].length > 0
       );
     }
-
     return typeof currentAnswer === "string" && currentAnswer.length > 0;
   };
 
   // Identify which sub-prompts of a two-part item are missing.
-  // Used to give the user a precise error message rather than a generic one.
   const incompleteTwoPartSubs = (): number[] => {
     if (question.answer_type !== "two_part_multiple_choice") return [];
     const subs = question.options.sub_prompts;
@@ -158,31 +153,25 @@ export default function AssessmentPage() {
   };
 
   const handleNext = () => {
-    // For free-text items: if the user advances without typing anything,
-    // persist an empty string so the response exists in storage.
-    // This ensures completion validation treats item 32 as complete.
+    // For free-text items: persist an empty string so the response exists in
+    // storage, ensuring completion validation treats the item as complete.
     if (question.answer_type === "free_text") {
       if (currentAnswer === undefined) {
         persistAnswer("");
       }
     }
 
-    // For all other items, validate. The button stays enabled; we surface
-    // a validation message rather than disabling the action.
     if (!isAnswered()) {
       if (question.answer_type === "two_part_multiple_choice") {
         const missing = incompleteTwoPartSubs();
-        const missingText =
+        const validationMsg =
           missing.length === 1
-            ? `Part ${missing[0]} is unanswered.`
-            : `Parts ${missing.join(" and ")} are unanswered.`;
-        setValidationError(
-          `${missingText} Please answer both parts to continue.`
-        );
+            ? t.assessment.validation_part_single(missing[0])
+            : t.assessment.validation_parts_multiple(missing);
+        setValidationError(validationMsg);
       } else {
-        setValidationError("Please choose a response before continuing.");
+        setValidationError(t.assessment.validation_choose);
       }
-      // Move keyboard/screen-reader focus back to the question area.
       questionAreaRef.current?.focus();
       return;
     }
@@ -208,11 +197,7 @@ export default function AssessmentPage() {
     const firstIncompleteIdx = QUESTIONS.findIndex(
       (q) => q.id === incomplete[0]
     );
-    setValidationError(
-      `${incomplete.length} ${
-        incomplete.length === 1 ? "question is" : "questions are"
-      } still unanswered. Returning you to the first one.`
-    );
+    setValidationError(t.assessment.validation_incomplete(incomplete.length));
     setTimeout(() => navigateTo(firstIncompleteIdx), 1200);
   };
 
@@ -255,12 +240,11 @@ export default function AssessmentPage() {
               onClick={handlePrevious}
               disabled={currentIndex === 0}
             >
-              ← Previous
+              {t.assessment.prev}
             </Button>
 
-            {/* Next button is always active. Validation happens on click. */}
             <Button onClick={handleNext}>
-              {isLast ? "Finish" : "Next →"}
+              {isLast ? t.assessment.finish : t.assessment.next}
             </Button>
           </div>
         </main>

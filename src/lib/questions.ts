@@ -12,6 +12,7 @@
 import rawBank from "@/data/.generated/question-bank-frontend.json";
 import type {
   FrontendQuestion,
+  LocalizedString,
   ScaleLabels,
   MultipleChoiceOption,
   SubPrompt,
@@ -38,16 +39,31 @@ interface RawBank {
   questions?: unknown;
 }
 
-function asString(value: unknown, field: string): string {
-  if (typeof value !== "string") {
-    throw new Error(`Expected string for ${field}, got ${typeof value}`);
+function asLocalizedString(value: unknown, field: string): LocalizedString {
+  if (typeof value === "string") return value;
+  if (value !== null && typeof value === "object" && !Array.isArray(value)) {
+    const obj = value as Record<string, unknown>;
+    if (typeof obj.en === "string") {
+      return typeof obj.ar === "string"
+        ? { en: obj.en, ar: obj.ar }
+        : obj.en;
+    }
   }
-  return value;
+  throw new Error(
+    `Expected string or {en, ar} object for ${field}, got ${typeof value}`
+  );
 }
 
 function asNumber(value: unknown, field: string): number {
   if (typeof value !== "number") {
     throw new Error(`Expected number for ${field}, got ${typeof value}`);
+  }
+  return value;
+}
+
+function asString(value: unknown, field: string): string {
+  if (typeof value !== "string") {
+    throw new Error(`Expected string for ${field}, got ${typeof value}`);
   }
   return value;
 }
@@ -69,11 +85,11 @@ function asArray(value: unknown, field: string): unknown[] {
 function projectScaleLabels(raw: unknown, itemId: number): ScaleLabels {
   const obj = asObject(raw, `item ${itemId} scale_labels`);
   return {
-    "1": asString(obj["1"], `item ${itemId} scale_labels.1`),
-    "2": asString(obj["2"], `item ${itemId} scale_labels.2`),
-    "3": asString(obj["3"], `item ${itemId} scale_labels.3`),
-    "4": asString(obj["4"], `item ${itemId} scale_labels.4`),
-    "5": asString(obj["5"], `item ${itemId} scale_labels.5`),
+    "1": asLocalizedString(obj["1"], `item ${itemId} scale_labels.1`),
+    "2": asLocalizedString(obj["2"], `item ${itemId} scale_labels.2`),
+    "3": asLocalizedString(obj["3"], `item ${itemId} scale_labels.3`),
+    "4": asLocalizedString(obj["4"], `item ${itemId} scale_labels.4`),
+    "5": asLocalizedString(obj["5"], `item ${itemId} scale_labels.5`),
   };
 }
 
@@ -90,7 +106,7 @@ function projectMultipleChoiceOptions(
         o.option_id,
         `item ${itemId} ${context} options[${idx}].option_id`
       ),
-      label: asString(
+      label: asLocalizedString(
         o.label,
         `item ${itemId} ${context} options[${idx}].label`
       ),
@@ -108,7 +124,7 @@ function projectSubPrompts(raw: unknown, itemId: number): SubPrompt[] {
     const s = sp as RawSubPrompt;
     return {
       sub_id: asString(s.sub_id, `item ${itemId} sub_prompts[${idx}].sub_id`),
-      prompt: asString(
+      prompt: asLocalizedString(
         s.prompt,
         `item ${itemId} sub_prompts[${idx}].prompt`
       ),
@@ -145,7 +161,7 @@ function projectFreeTextOptions(
 
 function projectQuestion(raw: RawQuestion): FrontendQuestion {
   const id = asNumber(raw.id, "question.id");
-  const user_facing_item = asString(
+  const user_facing_item = asLocalizedString(
     raw.user_facing_item,
     `item ${id} user_facing_item`
   );

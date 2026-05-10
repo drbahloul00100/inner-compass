@@ -1,5 +1,7 @@
 import type { SubPrompt } from "@/types/question";
 import type { TwoPartAnswer } from "@/types/response";
+import { useLanguage } from "@/context/LanguageContext";
+import { getLocalizedText } from "@/lib/i18n";
 import MultipleChoiceInput from "./MultipleChoiceInput";
 
 interface TwoPartInputProps {
@@ -15,6 +17,7 @@ export default function TwoPartInput({
   onChange,
   itemId,
 }: TwoPartInputProps) {
+  const { lang, t } = useLanguage();
   const current = value ?? {};
 
   const handleSubChange = (subId: string, answer: string) => {
@@ -27,11 +30,11 @@ export default function TwoPartInput({
         <div key={sub.sub_id}>
           <div className="mb-4 flex items-baseline gap-3">
             <span className="text-xs font-medium uppercase tracking-wide text-accent">
-              Part {index + 1} of {subPrompts.length}
+              {t.two_part.part_label(index + 1, subPrompts.length)}
             </span>
           </div>
           <p className="text-base text-ink mb-5 leading-relaxed">
-            {sub.prompt}
+            {getLocalizedText(sub.prompt, lang)}
           </p>
           <MultipleChoiceInput
             options={sub.options}

@@ -18,16 +18,31 @@ const SOURCE_PATH = resolve(__dirname, "../src/data/question-bank-v1.json");
 const OUTPUT_DIR = resolve(__dirname, "../src/data/.generated");
 const OUTPUT_PATH = resolve(OUTPUT_DIR, "question-bank-frontend.json");
 
-function asString(value, field) {
-  if (typeof value !== "string") {
-    throw new Error(`Expected string for ${field}, got ${typeof value}`);
+// Accepts a plain string or a {en, ar} bilingual object.
+function asLocalizedString(value, field) {
+  if (typeof value === "string") return value;
+  if (value !== null && typeof value === "object" && !Array.isArray(value)) {
+    if (typeof value.en === "string") {
+      return typeof value.ar === "string"
+        ? { en: value.en, ar: value.ar }
+        : value.en;
+    }
   }
-  return value;
+  throw new Error(
+    `Expected string or {en, ar} object for ${field}, got ${typeof value}`
+  );
 }
 
 function asNumber(value, field) {
   if (typeof value !== "number") {
     throw new Error(`Expected number for ${field}, got ${typeof value}`);
+  }
+  return value;
+}
+
+function asString(value, field) {
+  if (typeof value !== "string") {
+    throw new Error(`Expected string for ${field}, got ${typeof value}`);
   }
   return value;
 }
@@ -49,11 +64,11 @@ function asArray(value, field) {
 function projectScaleLabels(raw, itemId) {
   const obj = asObject(raw, `item ${itemId} scale_labels`);
   return {
-    "1": asString(obj["1"], `item ${itemId} scale_labels.1`),
-    "2": asString(obj["2"], `item ${itemId} scale_labels.2`),
-    "3": asString(obj["3"], `item ${itemId} scale_labels.3`),
-    "4": asString(obj["4"], `item ${itemId} scale_labels.4`),
-    "5": asString(obj["5"], `item ${itemId} scale_labels.5`),
+    "1": asLocalizedString(obj["1"], `item ${itemId} scale_labels.1`),
+    "2": asLocalizedString(obj["2"], `item ${itemId} scale_labels.2`),
+    "3": asLocalizedString(obj["3"], `item ${itemId} scale_labels.3`),
+    "4": asLocalizedString(obj["4"], `item ${itemId} scale_labels.4`),
+    "5": asLocalizedString(obj["5"], `item ${itemId} scale_labels.5`),
   };
 }
 
@@ -66,7 +81,7 @@ function projectMultipleChoiceOptions(raw, itemId, context) {
         o.option_id,
         `item ${itemId} ${context} options[${idx}].option_id`
       ),
-      label: asString(
+      label: asLocalizedString(
         o.label,
         `item ${itemId} ${context} options[${idx}].label`
       ),
@@ -82,7 +97,10 @@ function projectSubPrompts(raw, itemId) {
   );
   return subPromptsRaw.map((sp, idx) => ({
     sub_id: asString(sp.sub_id, `item ${itemId} sub_prompts[${idx}].sub_id`),
-    prompt: asString(sp.prompt, `item ${itemId} sub_prompts[${idx}].prompt`),
+    prompt: asLocalizedString(
+      sp.prompt,
+      `item ${itemId} sub_prompts[${idx}].prompt`
+    ),
     context_domain: asString(
       sp.context_domain,
       `item ${itemId} sub_prompts[${idx}].context_domain`
@@ -112,7 +130,7 @@ function projectFreeTextOptions(raw, itemId) {
 
 function projectQuestion(raw) {
   const id = asNumber(raw.id, "question.id");
-  const user_facing_item = asString(
+  const user_facing_item = asLocalizedString(
     raw.user_facing_item,
     `item ${id} user_facing_item`
   );

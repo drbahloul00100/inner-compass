@@ -10,7 +10,8 @@
   }
 
   body {
-    font-family: "Inter", system-ui, -apple-system, sans-serif;
+    font-family: "Inter", "IBM Plex Sans Arabic", "Noto Sans Arabic", system-ui,
+      -apple-system, sans-serif;
   }
 
   h1,
@@ -20,6 +21,16 @@
   h5,
   h6 {
     font-family: "Charter", "Georgia", serif;
+  }
+
+  /* Arabic headings use a sans-serif since Charter/Georgia have no Arabic glyphs */
+  [dir="rtl"] h1,
+  [dir="rtl"] h2,
+  [dir="rtl"] h3,
+  [dir="rtl"] h4,
+  [dir="rtl"] h5,
+  [dir="rtl"] h6 {
+    font-family: "IBM Plex Sans Arabic", "Noto Sans Arabic", system-ui, sans-serif;
   }
 
   /* Improve focus visibility for keyboard users */

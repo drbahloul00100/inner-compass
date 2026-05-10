@@ -3,9 +3,11 @@ import { useRouter } from "next/router";
 import Layout from "@/components/layout/Layout";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function Finalize() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [hasSession, setHasSession] = useState(false);
@@ -28,12 +30,11 @@ export default function Finalize() {
         {!submitted ? (
           <>
             <h1 className="text-3xl md:text-4xl font-serif text-ink mb-6 leading-tight">
-              Receive your report
+              {t.finalize.title}
             </h1>
 
             <p className="text-ink-soft leading-relaxed mb-10">
-              Enter your email to receive your personal Inner Compass report.
-              Your responses are private; we will not send marketing.
+              {t.finalize.subtitle}
             </p>
 
             <Card>
@@ -43,7 +44,7 @@ export default function Finalize() {
                     htmlFor="email"
                     className="block text-sm font-medium text-ink mb-2"
                   >
-                    Email
+                    {t.finalize.email_label}
                   </label>
                   <input
                     id="email"
@@ -53,19 +54,18 @@ export default function Finalize() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     autoComplete="email"
+                    placeholder={t.finalize.email_placeholder}
                     className="w-full px-4 py-3 border border-line rounded-md bg-paper-card focus:outline-none focus:border-accent"
-                    placeholder="you@example.com"
                   />
                 </div>
 
                 <Button type="submit" size="lg" disabled={!hasSession}>
-                  Continue
+                  {t.finalize.submit}
                 </Button>
 
                 {!hasSession && (
                   <p className="text-sm text-ink-mute italic">
-                    No assessment session detected. Please start the
-                    assessment first.
+                    {t.finalize.no_session}
                   </p>
                 )}
               </form>
@@ -74,17 +74,13 @@ export default function Finalize() {
         ) : (
           <Card>
             <h1 className="text-2xl font-serif text-ink mb-4">
-              You have completed Phase 1.
+              {t.finalize.done_title}
             </h1>
             <p className="text-ink-soft leading-relaxed">
-              In Phase 2, this is where your account will be created and your
-              report will be generated. For now, your assessment responses
-              have been saved to this browser&apos;s local storage. Thank you
-              for taking the assessment.
+              {t.finalize.done_p1}
             </p>
             <p className="text-ink-mute leading-relaxed mt-6 text-sm italic">
-              This page is a placeholder for the email-capture and scoring
-              flow that will be built in Phase 2.
+              {t.finalize.done_p2}
             </p>
           </Card>
         )}

@@ -1,5 +1,7 @@
 import type { ScaleLabels } from "@/types/question";
 import type { LikertAnswer } from "@/types/response";
+import { useLanguage } from "@/context/LanguageContext";
+import { getLocalizedText } from "@/lib/i18n";
 
 interface LikertInputProps {
   scaleLabels: ScaleLabels;
@@ -16,6 +18,8 @@ export default function LikertInput({
   onChange,
   itemId,
 }: LikertInputProps) {
+  const { lang } = useLanguage();
+
   return (
     <fieldset className="space-y-3">
       <legend className="sr-only">Select your response</legend>
@@ -41,7 +45,9 @@ export default function LikertInput({
               onChange={() => onChange(s)}
               className="mt-1 accent-accent"
             />
-            <span className="text-ink leading-relaxed">{scaleLabels[s]}</span>
+            <span className="text-ink leading-relaxed">
+              {getLocalizedText(scaleLabels[s], lang)}
+            </span>
           </label>
         );
       })}
