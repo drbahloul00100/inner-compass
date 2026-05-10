@@ -1,0 +1,103 @@
+import type { FrontendQuestion } from "@/types/question";
+import type {
+  LikertAnswer,
+  ResponseAnswer,
+  TwoPartAnswer,
+} from "@/types/response";
+import LikertInput from "./LikertInput";
+import DirectionalLikertInput from "./DirectionalLikertInput";
+import MultipleChoiceInput from "./MultipleChoiceInput";
+import TwoPartInput from "./TwoPartInput";
+import FreeTextInput from "./FreeTextInput";
+
+interface QuestionRendererProps {
+  question: FrontendQuestion;
+  value: ResponseAnswer | undefined;
+  onChange: (value: ResponseAnswer) => void;
+}
+
+export default function QuestionRenderer({
+  question,
+  value,
+  onChange,
+}: QuestionRendererProps) {
+  // Item prompt — rendered with whitespace-pre-line to preserve newlines from JSON
+  const prompt = (
+    <p className="text-lg md:text-xl text-ink leading-relaxed mb-8 whitespace-pre-line">
+      {question.user_facing_item}
+    </p>
+  );
+
+  switch (question.answer_type) {
+    case "likert":
+      return (
+        <div>
+          {prompt}
+          <LikertInput
+            scaleLabels={question.options.scale_labels}
+            value={value as LikertAnswer | undefined}
+            onChange={(v) => onChange(v)}
+            itemId={question.id}
+          />
+        </div>
+      );
+
+    case "directional_likert":
+      return (
+        <div>
+          {prompt}
+          <DirectionalLikertInput
+            scaleLabels={question.options.scale_labels}
+            value={value as LikertAnswer | undefined}
+            onChange={(v) => onChange(v)}
+            itemId={question.id}
+          />
+        </div>
+      );
+
+    case "multiple_choice":
+      return (
+        <div>
+          {prompt}
+          <MultipleChoiceInput
+            options={question.options}
+            value={value as string | undefined}
+            onChange={(v) => onChange(v)}
+            itemId={question.id}
+          />
+        </div>
+      );
+
+    case "two_part_multiple_choice":
+      return (
+        <div>
+          {prompt}
+          <TwoPartInput
+            subPrompts={question.options.sub_prompts}
+            value={value as TwoPartAnswer | undefined}
+            onChange={(v) => onChange(v)}
+            itemId={question.id}
+          />
+        </div>
+      );
+
+    case "free_text":
+      return (
+        <div>
+          {prompt}
+          <FreeTextInput
+            options={question.options}
+            value={value as string | undefined}
+            onChange={(v) => onChange(v)}
+            itemId={question.id}
+          />
+        </div>
+      );
+
+    default: {
+      // Exhaustiveness check
+      const _exhaustive: never = question;
+      return _exhaustive;
+    }
+  }
+}
