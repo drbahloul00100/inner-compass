@@ -9,12 +9,16 @@
 // Run via: npm run build (which runs `prebuild` first)
 // Or manually: node scripts/project-bank.mjs
 
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const SOURCE_PATH = resolve(__dirname, "../src/data/question-bank-v1.json");
+// Source: bilingual bank with { en, ar } on user-facing strings.
+// Falls back to the English-only bank if the localized file is missing —
+// this keeps the build working even if someone deletes the bilingual file.
+const LOCALIZED_PATH = resolve(__dirname, "../src/data/question-bank-v1.localized.json");
+const FALLBACK_PATH = resolve(__dirname, "../src/data/question-bank-v1.json");
 const OUTPUT_DIR = resolve(__dirname, "../src/data/.generated");
 const OUTPUT_PATH = resolve(OUTPUT_DIR, "question-bank-frontend.json");
 
@@ -177,6 +181,8 @@ function projectQuestion(raw) {
 }
 
 // ---------- Run ----------
+
+const SOURCE_PATH = existsSync(LOCALIZED_PATH) ? LOCALIZED_PATH : FALLBACK_PATH;
 
 console.log(`[project-bank] Reading source from ${SOURCE_PATH}`);
 const raw = JSON.parse(readFileSync(SOURCE_PATH, "utf-8"));
