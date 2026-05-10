@@ -1,0 +1,171 @@
+# Inner Compass — Phase 1
+
+A self-awareness assessment that measures how people behave under pressure.
+This is the Phase 1 build: static landing pages plus a fully functional
+84-item assessment UI with localStorage persistence. No backend yet.
+
+---
+
+## Important: Replace the placeholder question bank
+
+The file at `src/data/question-bank-v1.json` is a **placeholder** containing
+5 sample items (one of each answer type) so the project can boot and the
+type system can be verified.
+
+**Before running for real users**, replace this entire file with the
+approved `inner_compass_question_bank_v1` containing all 84 items, exactly
+as it was finalized. The structure must remain:
+
+```
+{
+  "version": "inner_compass_question_bank_v1",
+  "total_items": 84,
+  "questions": [ /* 84 items */ ]
+}
+```
+
+### How the question bank reaches the frontend
+
+The source file at `src/data/question-bank-v1.json` contains the full
+scoring metadata (`score_mapping`, `scoring_metadata`, `internal_notes`).
+**These fields must never enter the client bundle.**
+
+The build pipeline enforces this:
+
+1. `scripts/project-bank.mjs` reads the source bank and writes a
+   frontend-safe projection to `src/data/.generated/question-bank-frontend.json`.
+   Only `id`, `answer_type`, `user_facing_item`, and the relevant
+   `options` shape are kept. Scoring fields are stripped.
+2. `npm run dev` and `npm run build` automatically run this projector
+   first (via `predev` and `prebuild` hooks).
+3. `src/lib/questions.ts` imports the **generated** file, never the source.
+
+The generated directory is gitignored — it is a build artifact that
+regenerates from the source on every build.
+
+---
+
+## Local development
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Replace the placeholder bank at src/data/question-bank-v1.json
+#    with the approved 84-item file (see above).
+
+# 3. Run the dev server
+npm run dev
+
+# 4. Open http://localhost:3000
+```
+
+### Type check
+
+```bash
+npm run type-check
+```
+
+### Production build (local test)
+
+```bash
+npm run build
+npm run start
+```
+
+---
+
+## Deploying to Netlify
+
+This project is configured for Netlify, not Vercel. Do not assume
+Vercel-specific APIs or features.
+
+1. Push the project to a Git repository (GitHub, GitLab, or Bitbucket).
+2. Log into Netlify, click **Add new site → Import an existing project**.
+3. Select the repository.
+4. Build settings should auto-detect from `netlify.toml`:
+   - Build command: `npm run build`
+   - Publish directory: `.next`
+   - Node version: 20
+5. Phase 1 has no environment variables. Click **Deploy site**.
+
+The `@netlify/plugin-nextjs` plugin handles SSR and dynamic routes
+automatically. First deployment takes 2–5 minutes.
+
+---
+
+## What's in Phase 1
+
+- **Pages:** `/`, `/about`, `/start`, `/assessment/[session_id]`, `/finalize`
+- **Persistence:** localStorage only, keyed by session_id
+- **Question bank:** loaded from local JSON, with frontend-safe projection
+  (scoring metadata is stripped before reaching React components)
+- **All 5 answer types supported:** Likert, Directional Likert,
+  Multiple Choice, Two-Part Multiple Choice, Free Text
+- **Item #32 (free text):** never blocks completion; blank submission
+  stores empty string and counts as complete
+- **Next button:** always active; missing answers trigger inline
+  validation rather than a disabled state
+- **Accessibility:** keyboard navigable, focus management, screen-reader
+  announcements via `role="alert"` and `aria-live`
+
+## What's NOT in Phase 1
+
+The following are deferred to later phases:
+
+- Supabase integration and authentication (Phase 2)
+- Server-side scoring engine (Phase 3)
+- Claude API integration for report generation (Phase 4)
+- PDF export (Phase 5)
+- Stripe payments (Phase 6)
+
+The `/finalize` page captures email but currently only displays a
+placeholder message; no account is created and no report is generated.
+
+---
+
+## File structure
+
+```
+inner-compass/
+├── netlify.toml
+├── next.config.js
+├── package.json
+├── postcss.config.js
+├── tailwind.config.ts
+├── tsconfig.json
+├── public/
+│   └── (favicon and OG images go here)
+├── scripts/
+│   └── project-bank.mjs            (build-time bank projector)
+└── src/
+    ├── components/
+    │   ├── assessment/
+    │   ├── layout/
+    │   └── ui/
+    ├── data/
+    │   ├── question-bank-v1.json   <-- REPLACE WITH APPROVED BANK
+    │   └── .generated/             (gitignored; regenerated on build)
+    │       └── question-bank-frontend.json
+    ├── lib/
+    │   ├── questions.ts             (imports the .generated projection)
+    │   ├── session.ts
+    │   └── storage.ts               (localStorage helpers)
+    ├── pages/
+    │   ├── _app.tsx
+    │   ├── _document.tsx
+    │   ├── about.tsx
+    │   ├── assessment/
+    │   │   └── [session_id].tsx
+    │   ├── finalize.tsx
+    │   ├── index.tsx
+    │   └── start.tsx
+    ├── styles/
+    │   └── globals.css
+    └── types/
+        ├── question.ts
+        └── response.ts
+```
+
+`next-env.d.ts` is auto-generated by Next.js on first build. It is
+committed to git (do not add it to `.gitignore`).
