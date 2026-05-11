@@ -20,51 +20,83 @@ export const en: Translations = {
       "Inner Compass is a self-awareness assessment for thoughtful adults. It measures behavior under pressure rather than self-image, and produces a personal report calibrated to the version of you that shows up when your capacity is exceeded.",
     cta_primary: "Begin the assessment",
     cta_secondary: "Read more first",
-    measures_title: "What it measures",
-    measures_p1:
-      "Most personality assessments tell you who you are on your best day. Inner Compass tells you who you become on your worst.",
-    measures_p2:
-      "Across 84 carefully written items, it measures your pressure signatures (what tends to appear when you are stretched), your inner drivers (the deeper hungers shaping your choices), and the way these combine into a recognizable pattern.",
-    measures_p3:
-      "The result is a written report — direct, warm, and specific — designed to be read once carefully and revisited later.",
     why_title: "Why pressure patterns matter",
     why_p1:
       "Most personality systems describe who you are. They miss the more useful question: who you become when capacity is exceeded. The version of you under pressure is the one that makes the costly decisions, has the difficult conversations, and holds the team or the relationship together — or doesn't.",
     why_p2:
       "These patterns are durable. They were forged early and rehearsed daily. They are also legible — once you can see them, you can choose with them in view.",
-    reveals_title: "What the report reveals",
-    reveals_intro: "Your written report covers four dimensions:",
-    reveals_item1_title: "Pressure signatures",
-    reveals_item1_body:
-      "The recurring shapes your behavior takes when capacity is exceeded — what tends to appear, in what order, and at what cost.",
-    reveals_item2_title: "Inner drivers",
-    reveals_item2_body:
-      "The deeper hungers — for control, for mattering, for safety — that quietly shape your choices.",
-    reveals_item3_title: "Context modulation",
-    reveals_item3_body:
-      "How your patterns shift between work and close relationships — where you hold composure and where you don't.",
-    reveals_item4_title: "Recovery and depletion",
-    reveals_item4_body:
-      "The cost of holding it together, and how long it takes you to return to yourself afterward.",
+    // Stats strip
+    stats_items_label: "Assessment items",
+    stats_signatures_label: "Pressure signatures",
+    stats_drivers_label: "Inner drivers",
+    stats_domains_label: "Life domains",
+    stats_modes_label: "Report modes",
+    // 6 reveal cards
+    reveals_title: "What Inner Compass reveals",
+    reveal1_title: "Pressure Signature",
+    reveal1_body:
+      "The recurring shape your behavior takes when capacity is exceeded.",
+    reveal2_title: "Inner Driver",
+    reveal2_body:
+      "The deeper hunger — for control, mattering, safety — shaping your choices.",
+    reveal3_title: "Decision Architecture",
+    reveal3_body:
+      "How you weigh stakes, gather information, and commit when data is incomplete.",
+    reveal4_title: "Emotional Operating System",
+    reveal4_body:
+      "How you notice, hold, and express what you feel — and what it costs you to do so.",
+    reveal5_title: "Relationship Pattern",
+    reveal5_body:
+      "How you repair rupture, hold closeness, and move through interpersonal pressure.",
+    reveal6_title: "Leadership Footprint",
+    reveal6_body:
+      "What people around you actually carry from working in your presence.",
+    // 4-step flow
     how_title: "How it works",
-    how_step1_title: "Take the assessment",
-    how_step1_body: "84 behavioral questions, about 15 minutes. Saved automatically as you go.",
-    how_step2_title: "Answer honestly",
-    how_step2_body:
-      "From real behavior, not self-image. Your accuracy is the report's accuracy.",
-    how_step3_title: "Read your report",
-    how_step3_body:
-      "A direct, specific account of how you behave under pressure — and why.",
-    expect_title: "What to expect",
-    expect_time_label: "Time required:",
-    expect_time_body: "about 15 minutes of honest answering.",
-    expect_style_label: "Question style:",
-    expect_style_body: "behavioral scenarios, not personality preferences.",
-    expect_output_label: "Output:",
-    expect_output_body: "a personal report you can read in the browser or download.",
-    expect_privacy_label: "Privacy:",
-    expect_privacy_body:
-      "your responses are private to you. They are never sold or shared.",
+    flow1_title: "Answer honestly",
+    flow1_body:
+      "84 behavioral questions, around 15 minutes. From real behavior, not self-image.",
+    flow2_title: "Patterns are calculated",
+    flow2_body:
+      "Your responses are mapped to signatures, drivers, and context modulation.",
+    flow3_title: "Lite Report is generated",
+    flow3_body:
+      "A clear written summary of your primary patterns and what they mean.",
+    flow4_title: "Full Report unlocks",
+    flow4_body:
+      "A deeper, detailed report with development guidance.",
+    // Report Preview
+    preview_title: "What the report looks like",
+    preview_subtitle:
+      "Direct, specific, designed to be read once carefully and revisited later.",
+    preview_label: "Preview",
+    preview_exec_label: "Executive summary",
+    preview_exec_body:
+      "[Example] Under pressure, you tend toward composed control. Your inner driver leans toward mattering through judgment. The cost shows up in delayed recovery and quiet resentment.",
+    preview_glance_label: "At a glance",
+    preview_glance_signature_label: "Signature",
+    preview_glance_signature: "The Composed Controller",
+    preview_glance_driver_label: "Driver",
+    preview_glance_driver: "Hunger to matter",
+    preview_glance_recovery_label: "Recovery",
+    preview_glance_recovery: "Slow",
+    preview_signature_label: "Primary pressure signature",
+    preview_signature_body:
+      "Composed Controller — strong on outward steadiness, costly in private recovery.",
+    preview_bar1_label: "Controller",
+    preview_bar2_label: "Hunger to matter",
+    preview_bar3_label: "Quiet recovery",
+    preview_devplan_label: "Development plan",
+    preview_devplan_body:
+      "Three targeted shifts to soften the pattern without losing its strengths.",
+    // Early readers
+    early_title: "Early reader reactions",
+    early_subtitle:
+      "Feedback from early readers will appear here as the beta opens.",
+    early_placeholder_label: "Placeholder",
+    early_placeholder_quote:
+      "This space is reserved for real feedback from early readers — quotes, names, and roles will be added once the beta opens.",
+    // Final CTA
     final_cta_title: "Ready when you are.",
     final_cta_body:
       "Take the assessment in a moment when you can be honest with yourself. The report waits.",
@@ -90,6 +122,7 @@ export const en: Translations = {
     cta: "Begin the assessment",
   },
   start: {
+    eyebrow: "Before the assessment",
     title: "Before you begin",
     pill_minutes: "About 15 minutes",
     pill_questions: "84 questions",

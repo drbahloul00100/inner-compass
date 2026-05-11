@@ -37,39 +37,55 @@ export interface Translations {
     hero_body: string;
     cta_primary: string;
     cta_secondary: string;
-    measures_title: string;
-    measures_p1: string;
-    measures_p2: string;
-    measures_p3: string;
     why_title: string;
     why_p1: string;
     why_p2: string;
+    // Stats strip (animated counters)
+    stats_items_label: string;
+    stats_signatures_label: string;
+    stats_drivers_label: string;
+    stats_domains_label: string;
+    stats_modes_label: string;
+    // 6 reveal cards
     reveals_title: string;
-    reveals_intro: string;
-    reveals_item1_title: string;
-    reveals_item1_body: string;
-    reveals_item2_title: string;
-    reveals_item2_body: string;
-    reveals_item3_title: string;
-    reveals_item3_body: string;
-    reveals_item4_title: string;
-    reveals_item4_body: string;
+    reveal1_title: string;  reveal1_body: string;
+    reveal2_title: string;  reveal2_body: string;
+    reveal3_title: string;  reveal3_body: string;
+    reveal4_title: string;  reveal4_body: string;
+    reveal5_title: string;  reveal5_body: string;
+    reveal6_title: string;  reveal6_body: string;
+    // 4-step flow
     how_title: string;
-    how_step1_title: string;
-    how_step1_body: string;
-    how_step2_title: string;
-    how_step2_body: string;
-    how_step3_title: string;
-    how_step3_body: string;
-    expect_title: string;
-    expect_time_label: string;
-    expect_time_body: string;
-    expect_style_label: string;
-    expect_style_body: string;
-    expect_output_label: string;
-    expect_output_body: string;
-    expect_privacy_label: string;
-    expect_privacy_body: string;
+    flow1_title: string;  flow1_body: string;
+    flow2_title: string;  flow2_body: string;
+    flow3_title: string;  flow3_body: string;
+    flow4_title: string;  flow4_body: string;
+    // Report Preview (mock)
+    preview_title: string;
+    preview_subtitle: string;
+    preview_label: string;
+    preview_exec_label: string;
+    preview_exec_body: string;
+    preview_glance_label: string;
+    preview_glance_signature_label: string;
+    preview_glance_signature: string;
+    preview_glance_driver_label: string;
+    preview_glance_driver: string;
+    preview_glance_recovery_label: string;
+    preview_glance_recovery: string;
+    preview_signature_label: string;
+    preview_signature_body: string;
+    preview_bar1_label: string;
+    preview_bar2_label: string;
+    preview_bar3_label: string;
+    preview_devplan_label: string;
+    preview_devplan_body: string;
+    // Early reader reactions (placeholder)
+    early_title: string;
+    early_subtitle: string;
+    early_placeholder_label: string;
+    early_placeholder_quote: string;
+    // Final CTA
     final_cta_title: string;
     final_cta_body: string;
   };
@@ -89,6 +105,7 @@ export interface Translations {
     cta: string;
   };
   start: {
+    eyebrow: string;
     title: string;
     pill_minutes: string;
     pill_questions: string;
