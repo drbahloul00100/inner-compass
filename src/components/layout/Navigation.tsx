@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
+import { useUser } from "@/lib/supabase/useUser";
 
 export default function Navigation() {
   const { lang, setLang, t } = useLanguage();
+  const { user, loading: userLoading } = useUser();
 
   return (
     <header className="border-b border-line bg-paper/80 backdrop-blur-sm sticky top-0 z-10">
@@ -21,6 +23,18 @@ export default function Navigation() {
           >
             {t.nav.about}
           </Link>
+
+          {/* Dashboard link — only when signed in. We render nothing during
+              the initial auth load to avoid a flash. */}
+          {!userLoading && user && (
+            <Link
+              href="/dashboard"
+              className="hover:text-ink transition-colors duration-200"
+            >
+              {t.nav.dashboard}
+            </Link>
+          )}
+
           <Link
             href="/start"
             className="text-accent hover:text-accent-deep font-medium transition-colors duration-200"

@@ -5,6 +5,8 @@ export const en: Translations = {
     logo: "Inner Compass",
     about: "About",
     begin: "Begin",
+    dashboard: "Dashboard",
+    sign_out: "Sign out",
   },
   footer: {
     copyright: (year) => `© ${year} Inner Compass`,
@@ -137,17 +139,57 @@ export const en: Translations = {
   finalize: {
     title: "Receive your report",
     subtitle:
-      "Enter your email to receive your personal Inner Compass report. Your responses are private; we will not send marketing.",
+      "Enter your email and we'll send you a sign-in link. Once signed in, your assessment will be securely linked to your account. Your responses are private; we will not send marketing.",
     email_label: "Email",
     email_placeholder: "you@example.com",
-    submit: "Continue",
+    submit: "Send sign-in link",
+    submitting: "Sending…",
     no_session:
       "No assessment session detected. Please start the assessment first.",
-    done_title: "You have completed Phase 1.",
+    sent_title: "Check your email",
+    sent_body: (email) =>
+      `We sent a sign-in link to ${email}. Click the link to access your assessment results.`,
+    sent_resend: "Send again",
+    sent_back: "Use a different email",
+    error_generic: "Could not send sign-in link. Please try again.",
+    done_title: "You have completed the assessment.",
     done_p1:
-      "In Phase 2, this is where your account will be created and your report will be generated. For now, your assessment responses have been saved to this browser’s local storage. Thank you for taking the assessment.",
+      "Your responses have been saved. Once signed in, you can return to this assessment from your dashboard. Thank you for taking it.",
     done_p2:
-      "This page is a placeholder for the email-capture and scoring flow that will be built in Phase 2.",
+      "Report generation will be available in the next phase.",
+  },
+  login: {
+    title: "Sign in",
+    subtitle: "Enter your email to receive a sign-in link.",
+    email_label: "Email",
+    email_placeholder: "you@example.com",
+    submit: "Send sign-in link",
+    submitting: "Sending…",
+    sent_title: "Check your email",
+    sent_body: (email) =>
+      `We sent a sign-in link to ${email}. Click the link to sign in.`,
+    error_generic: "Could not send sign-in link. Please try again.",
+  },
+  dashboard: {
+    title: "Your assessments",
+    signed_in_as: "Signed in as",
+    sign_out: "Sign out",
+    loading: "Loading…",
+    no_sessions_title: "No assessments yet",
+    no_sessions_body:
+      "You haven't started an assessment yet. Begin one now — it takes about 15 minutes.",
+    start_new: "Start a new assessment",
+    session_started_label: "Started",
+    session_status_label: "Status",
+    session_responses_label: "Responses",
+    session_language_label: "Language",
+    status_started: "Started",
+    status_in_progress: "In progress",
+    status_completed: "Completed",
+  },
+  preparing: {
+    title: "Preparing your results…",
+    subtitle: "Just a moment.",
   },
   assessment: {
     loading: "Loading…",

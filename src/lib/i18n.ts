@@ -24,6 +24,8 @@ export interface Translations {
     logo: string;
     about: string;
     begin: string;
+    dashboard: string;
+    sign_out: string;
   };
   footer: {
     copyright: (year: number) => string;
@@ -122,10 +124,47 @@ export interface Translations {
     email_label: string;
     email_placeholder: string;
     submit: string;
+    submitting: string;
     no_session: string;
+    sent_title: string;
+    sent_body: (email: string) => string;
+    sent_resend: string;
+    sent_back: string;
+    error_generic: string;
     done_title: string;
     done_p1: string;
     done_p2: string;
+  };
+  login: {
+    title: string;
+    subtitle: string;
+    email_label: string;
+    email_placeholder: string;
+    submit: string;
+    submitting: string;
+    sent_title: string;
+    sent_body: (email: string) => string;
+    error_generic: string;
+  };
+  dashboard: {
+    title: string;
+    signed_in_as: string;
+    sign_out: string;
+    loading: string;
+    no_sessions_title: string;
+    no_sessions_body: string;
+    start_new: string;
+    session_started_label: string;
+    session_status_label: string;
+    session_responses_label: string;
+    session_language_label: string;
+    status_started: string;
+    status_in_progress: string;
+    status_completed: string;
+  };
+  preparing: {
+    title: string;
+    subtitle: string;
   };
   assessment: {
     loading: string;
