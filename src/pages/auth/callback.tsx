@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import Layout from "@/components/layout/Layout";
 import Section from "@/components/ui/Section";
@@ -10,47 +10,81 @@ import { syncSessionToSupabase } from "@/lib/supabase/sync";
 const PENDING_KEY = "pending_session_id";
 
 type Phase =
-  | "exchanging"       // running auth code exchange + initial sync
-  | "redirecting"      // sync ok, about to leave the page
-  | "auth_error"       // code exchange failed
-  | "sync_error";      // signed in, but sync to Supabase failed
+  | "exchanging" // running auth code exchange + initial sync
+  | "redirecting" // sync ok, about to leave the page
+  | "auth_error" // code exchange failed AND no session was established
+  | "sync_error"; // signed in, but sync to Supabase failed
+
+// Logger that mirrors to console and to the same localStorage debug bucket as
+// sync.ts so the full timeline is captured in one place.
+const DEBUG_KEY = "__inner_compass_sync_debug";
+function log(...args: unknown[]) {
+  // eslint-disable-next-line no-console
+  console.log("[CALLBACK]", ...args);
+  try {
+    if (typeof window === "undefined") return;
+    const prev = window.localStorage.getItem(DEBUG_KEY) ?? "";
+    const line = `${new Date().toISOString()} [CALLBACK] ${args
+      .map((a) => (typeof a === "string" ? a : safe(a)))
+      .join(" ")}`;
+    const lines = (prev ? prev.split("\n") : []).concat(line).slice(-200);
+    window.localStorage.setItem(DEBUG_KEY, lines.join("\n"));
+  } catch {
+    // ignore
+  }
+}
+function safe(v: unknown): string {
+  try {
+    return JSON.stringify(v);
+  } catch {
+    return String(v);
+  }
+}
 
 // Handles the magic-link redirect. Exchanges the URL code for a session,
 // then syncs the pending localStorage assessment (if any) to Supabase under
 // the authenticated user. On success, redirects to /dashboard.
 //
 // On sync failure: keeps pending_session_id intact, surfaces an error with a
-// Try Again button. The user can retry as many times as needed without
-// re-running the magic-link flow.
-//
-// Auth params from Supabase can arrive as either ?code=... (PKCE) or a
-// #access_token=... hash fragment. supabase-js auto-detects both; we
-// additionally call exchangeCodeForSession explicitly when a code is present
-// so the error path is reachable.
+// Try Again button. The user can retry without re-running the magic-link flow.
 export default function AuthCallback() {
   const router = useRouter();
   const { t, lang } = useLanguage();
   const [phase, setPhase] = useState<Phase>("exchanging");
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
+  // Guard against double-fire when lang flips during hydration causing the
+  // effect to re-run with a fresh `runSync` reference.
+  const startedRef = useRef(false);
 
   const runSync = useCallback(async (): Promise<void> => {
-    const pendingId =
-      typeof window !== "undefined" ? localStorage.getItem(PENDING_KEY) : null;
+    let pendingId: string | null = null;
+    try {
+      pendingId =
+        typeof window !== "undefined"
+          ? window.localStorage.getItem(PENDING_KEY)
+          : null;
+    } catch (e) {
+      log("localStorage read for PENDING_KEY threw:", e);
+    }
+    log("runSync pendingId from localStorage:", pendingId);
 
     if (!pendingId) {
-      // Nothing to sync — straight to dashboard.
+      log("no pendingId — nothing to sync, going to /dashboard");
       setPhase("redirecting");
       router.replace("/dashboard");
       return;
     }
 
+    log("invoking syncSessionToSupabase…");
     const result = await syncSessionToSupabase(pendingId, lang, {
       markCompleted: true,
     });
+    log("sync result:", result);
 
     if (!result.ok) {
       // Keep pending_session_id intact so the user can retry.
-      console.warn("[auth/callback] sync failed:", result.error);
+      // eslint-disable-next-line no-console
+      console.warn("[CALLBACK] sync failed:", result.error);
       setErrorDetail(result.error ?? "unknown");
       setPhase("sync_error");
       return;
@@ -58,47 +92,83 @@ export default function AuthCallback() {
 
     // Success — clear the pending key and head to the dashboard.
     try {
-      localStorage.removeItem(PENDING_KEY);
-    } catch {
-      // localStorage disabled — irrelevant since sync already succeeded.
+      window.localStorage.removeItem(PENDING_KEY);
+      log("cleared PENDING_KEY");
+    } catch (e) {
+      log("PENDING_KEY removal threw (non-fatal):", e);
     }
     setPhase("redirecting");
     router.replace("/dashboard");
   }, [router, lang]);
 
-  // Initial run: exchange code, then attempt sync.
+  // Initial run: exchange code, then attempt sync. Runs ONCE per page mount.
   useEffect(() => {
     if (!router.isReady) return;
+    if (startedRef.current) {
+      log("effect re-fired (likely lang hydration) — already started, skipping");
+      return;
+    }
+    startedRef.current = true;
 
     let cancelled = false;
 
     const run = async () => {
+      log("=== auth/callback mounted ===");
+      log("window.location.href:", typeof window !== "undefined" ? window.location.href : "(ssr)");
+      log("router.query:", router.query);
+      log("active lang:", lang);
+
       const supabase = createClient();
 
       const code =
         typeof router.query.code === "string" ? router.query.code : null;
+      log("code param in URL:", code ? `present (len=${code.length})` : "absent");
 
       if (code) {
+        log("calling exchangeCodeForSession…");
         const { error } = await supabase.auth.exchangeCodeForSession(code);
-        if (error && !cancelled) {
-          setErrorDetail(error.message);
-          setPhase("auth_error");
-          // Give the user a moment to see the error before bouncing to login.
-          setTimeout(() => router.replace("/login"), 1800);
-          return;
+        if (error) {
+          // Defensive: supabase-js's createBrowserClient enables
+          // detectSessionInUrl by default and may have already consumed the
+          // code at instantiation time. If that happened, exchangeCodeForSession
+          // will fail — but getUser() will still return a valid user.
+          // Only treat this as auth_error if we genuinely have no session.
+          log("exchangeCodeForSession error:", error);
+          const { data: { user: existingUser } } = await supabase.auth.getUser();
+          if (!existingUser) {
+            log("FAIL auth_error — no existing session either");
+            if (!cancelled) {
+              setErrorDetail(error.message);
+              setPhase("auth_error");
+              setTimeout(() => router.replace("/login"), 1800);
+            }
+            return;
+          }
+          log("recovered — supabase-js had already established a session for user", existingUser.id);
+        } else {
+          log("exchangeCodeForSession ok");
         }
       }
 
       // Confirm we now have a user.
+      log("auth.getUser()…");
       const {
         data: { user },
+        error: userError,
       } = await supabase.auth.getUser();
+      if (userError) log("getUser error:", userError);
+      log("user:", user ? { id: user.id, email: user.email } : "null");
+
       if (!user) {
+        log("no user after auth, redirecting to /login");
         if (!cancelled) router.replace("/login");
         return;
       }
 
-      if (!cancelled) await runSync();
+      if (!cancelled) {
+        log("user resolved, calling runSync");
+        await runSync();
+      }
     };
 
     run();
@@ -106,20 +176,19 @@ export default function AuthCallback() {
     return () => {
       cancelled = true;
     };
-    // runSync is stable per-language; rerunning if lang changes mid-flow is
-    // intentional (would re-attempt with the new lang). router/router.isReady
-    // captures the readiness flip.
-  }, [router, router.isReady, runSync]);
+  }, [router, router.isReady, runSync, lang]);
 
   const handleRetry = async () => {
+    log("user clicked Try Again");
     setErrorDetail(null);
     setPhase("exchanging");
     await runSync();
   };
 
   const handleSkip = () => {
+    log("user clicked Skip to Dashboard — clearing pending key and going");
     try {
-      localStorage.removeItem(PENDING_KEY);
+      window.localStorage.removeItem(PENDING_KEY);
     } catch {
       // ignore
     }
