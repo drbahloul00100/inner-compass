@@ -181,6 +181,14 @@ export const ar: Translations = {
     status_in_progress: "قيد التقدم",
     status_completed: "مكتمل",
   },
+  callback: {
+    auth_error_title: "تعذّر التحقق من رابط تسجيل الدخول. سنُعيدك إلى صفحة الدخول…",
+    sync_error_title: "لم نستطع حفظ تقييمك بعد.",
+    sync_error_body:
+      "لقد تم تسجيل دخولك، لكن حدث خلل في الشبكة أو الخادم منعنا من حفظ إجاباتك. إجاباتك ما زالت محفوظة على هذا الجهاز. يرجى المحاولة مرة أخرى.",
+    sync_retry: "حاول مرة أخرى",
+    skip_to_dashboard: "تخطّى إلى لوحة التحكم",
+  },
   preparing: {
     title: "نُحضّر نتائجك…",
     subtitle: "لحظة من فضلك.",

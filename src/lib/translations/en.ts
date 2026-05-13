@@ -191,6 +191,14 @@ export const en: Translations = {
     title: "Preparing your results…",
     subtitle: "Just a moment.",
   },
+  callback: {
+    auth_error_title: "Sign-in link couldn't be verified. Returning to login…",
+    sync_error_title: "We couldn't save your assessment yet.",
+    sync_error_body:
+      "You're signed in, but a network or server issue prevented us from saving your responses. Your answers are still safe on this device. Please try again.",
+    sync_retry: "Try again",
+    skip_to_dashboard: "Skip to dashboard",
+  },
   assessment: {
     loading: "Loading…",
     error: "Something went wrong. Please refresh the page.",

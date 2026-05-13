@@ -166,6 +166,13 @@ export interface Translations {
     title: string;
     subtitle: string;
   };
+  callback: {
+    auth_error_title: string;
+    sync_error_title: string;
+    sync_error_body: string;
+    sync_retry: string;
+    skip_to_dashboard: string;
+  };
   assessment: {
     loading: string;
     error: string;
