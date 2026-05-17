@@ -190,7 +190,10 @@ export default function AssessmentPage() {
     );
 
     if (incomplete.length === 0) {
-      router.push(`/finalize?session_id=${session_id}`);
+      // Score the assessment anonymously and head to the report.
+      // Sign-in (via /finalize) is now an OPTIONAL step the user can take
+      // later from the report page — it's no longer in the critical path.
+      router.push(`/preparing/${encodeURIComponent(session_id)}`);
       return;
     }
 

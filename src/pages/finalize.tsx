@@ -11,6 +11,12 @@ import { createClient } from "@/lib/supabase/client";
 // finalizing across the magic-link round trip.
 const PENDING_KEY = "pending_session_id";
 
+// Hard-coded so it always matches the URL configured in Supabase's
+// Authentication → URL Configuration → Redirect URLs allow-list. Using
+// window.location.origin caused magic links to fail on preview URLs and
+// localhost since those origins aren't allow-listed.
+const MAGIC_LINK_REDIRECT = "https://innercompas.netlify.app/auth/callback";
+
 export default function Finalize() {
   const router = useRouter();
   const { t, lang } = useLanguage();
@@ -48,18 +54,24 @@ export default function Finalize() {
     }
 
     const supabase = createClient();
-    const redirectTo = `${window.location.origin}/auth/callback`;
 
     const { error: signInError } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: {
-        emailRedirectTo: redirectTo,
+        emailRedirectTo: MAGIC_LINK_REDIRECT,
         data: { language_preference: lang },
       },
     });
 
     if (signInError) {
-      setError(t.finalize.error_generic);
+      // Surface the real Supabase error so the user (and we, on a screenshot)
+      // can see what went wrong instead of a generic message. Examples:
+      // "Email rate limit exceeded", "Invalid email", "Signups not allowed",
+      // "Redirect URL not in allow-list".
+      // eslint-disable-next-line no-console
+      console.error("[finalize] signInWithOtp error:", signInError);
+      const detail = signInError.message || String(signInError);
+      setError(`${t.finalize.error_generic} — ${detail}`);
       setSubmitting(false);
       return;
     }
