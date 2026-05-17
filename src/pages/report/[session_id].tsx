@@ -5,18 +5,125 @@ import Layout from "@/components/layout/Layout";
 import Section from "@/components/ui/Section";
 import Button from "@/components/ui/Button";
 import { useLanguage } from "@/context/LanguageContext";
+import type { Language } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/client";
 
-// Minimal scoring-result shape we actually consume on this page. The full
-// ScoringResult interface lives in src/lib/scoring/types.ts but importing
-// it directly would (via barrels) potentially pull engine logic into the
-// client bundle. We re-declare a tiny subset here for safety.
-interface SignatureView { score: number; band: string }
+// ---------------------------------------------------------------------------
+// Display-time translations for engine output values.
+//
+// These live in this file (not in src/lib/translations/*) because they
+// translate engine *output values* — domain-specific labels tightly coupled
+// to the scoring constants — rather than UI chrome. UI chrome lives in
+// t.report.*. When language is EN we render the original snake_case term
+// after a small prettifier (controller → "Controller"); when AR we look up
+// the curated Arabic translation provided by the product team.
+// ---------------------------------------------------------------------------
+
+const SIGNATURE_AR: Record<string, string> = {
+  fixer: "المُصلح",
+  controller: "المتحكم",
+  vanisher: "المتغيب",
+  polisher: "المُلمِّع",
+  escalator: "المُصعِّد",
+  over_explainer: "المُبرِّر",
+  shutter: "المُغلِق",
+  accommodator: "المُهادِن",
+  critic: "الناقد",
+  sealed: "المكتوم",
+  doubler: "المُضاعِف",
+};
+
+const DRIVER_AR: Record<string, string> = {
+  hunger_to_matter: "الحاجة للأهمية",
+  hunger_to_be_seen: "الحاجة للظهور",
+  hunger_for_control: "الحاجة للسيطرة",
+  hunger_to_be_right: "الحاجة للصواب",
+  hunger_for_safety: "الحاجة للأمان",
+  hunger_to_be_loved: "الحاجة للمحبة",
+  hunger_for_freedom: "الحاجة للحرية",
+  hunger_to_belong: "الحاجة للانتماء",
+  hunger_to_be_free_of_failure: "الحاجة لتجنب الفشل",
+};
+
+const PATTERN_AR: Record<string, string> = {
+  the_performance_loop: "دائرة الأداء",
+  the_fortress: "القلعة",
+  the_loaded_carrier: "الحامل المثقل",
+  the_bargained_self: "الذات المُساوَمة",
+  the_strategic_withdrawal: "الانسحاب الاستراتيجي",
+  the_mission_bottleneck: "عنق الزجاجة",
+  the_audit: "التدقيق",
+};
+
+const BAND_AR: Record<string, string> = {
+  // signature_activation / driver_intensity
+  dominant: "مهيمن",
+  strong: "قوي",
+  present: "حاضر",
+  quiet: "هادئ",
+  // driver_regulation
+  mastered: "متحكم فيه",
+  steady: "مستقر",
+  working: "قيد العمل",
+  strained: "متوتر",
+  // recovery_cost
+  very_high: "مرتفع جداً",
+  high: "مرتفع",
+  medium: "متوسط",
+  low: "منخفض",
+  very_low: "منخفض جداً",
+  // pattern_match
+  very_strong: "قوي جداً",
+  moderate: "معتدل",
+  weak: "ضعيف",
+};
+
+const VALIDITY_AR: Record<string, string> = {
+  high: "عالية",
+  good: "جيدة",
+  moderate: "متوسطة",
+  low: "منخفضة",
+};
+
+function prettify(snake: string): string {
+  if (!snake) return "";
+  const spaced = snake.replace(/_/g, " ").trim();
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+function localize(
+  value: string | null | undefined,
+  map: Record<string, string>,
+  lang: Language,
+  fallback: string
+): string {
+  if (!value) return fallback;
+  if (lang === "ar") {
+    return map[value] ?? prettify(value);
+  }
+  return prettify(value);
+}
+
+// ---------------------------------------------------------------------------
+// Minimal scoring-result shape we actually consume on this page. (The full
+// ScoringResult interface lives in src/lib/scoring/types.ts but we don't
+// import it here — importing engine types could risk pulling engine code
+// into the client bundle via barrel files. The shapes below are a hand
+// re-declaration of the consumer-only subset.)
+// ---------------------------------------------------------------------------
+
+interface SignatureView {
+  score: number;
+  band: string;
+}
 interface DriverView {
   intensity: { score: number; band: string };
   regulation: { score: number; band: string };
 }
-interface PatternView { match: number; band: string }
+interface PatternView {
+  match: number;
+  band: string;
+}
 
 interface ScoringJson {
   engine_version?: string;
@@ -41,11 +148,13 @@ interface ScoringRow {
   scored_at: string;
 }
 
-// Phase 3 placeholder. Shows the raw scoring output in a structured but
-// minimal way. Phase 4 replaces this with the full written report.
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
+
 export default function ReportPage() {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [row, setRow] = useState<ScoringRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -111,61 +220,81 @@ export default function ReportPage() {
   const drivers = json.drivers ?? {};
   const patterns = json.patterns ?? {};
 
+  const noneLabel = t.report.none;
+
+  const primarySignatureLabel = localize(row.primary_signature, SIGNATURE_AR, lang, noneLabel);
+  const primaryDriverLabel = localize(row.primary_driver, DRIVER_AR, lang, noneLabel);
+  const primaryPatternLabel = localize(row.primary_pattern, PATTERN_AR, lang, noneLabel);
+  const validityLabel = localize(row.validity_confidence, VALIDITY_AR, lang, noneLabel);
+
   return (
     <Layout title="Report">
       <Section spacing="spacious">
         <h1 className="text-[2rem] md:text-[2.5rem] font-serif tracking-[-0.015em] text-ink mb-3 leading-[1.15]">
           {t.report.title}
         </h1>
-        <p className="text-ink-soft leading-[1.7] mb-10 max-w-prose">
+        <p className="text-ink-soft leading-[1.7] mb-12 md:mb-14 max-w-prose">
           {t.report.subtitle}
         </p>
 
-        {/* Primary fields */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-          <SummaryStat label={t.report.primary_signature_label} value={row.primary_signature ?? t.report.none} />
-          <SummaryStat label={t.report.primary_driver_label} value={row.primary_driver ?? t.report.none} />
-          <SummaryStat label={t.report.primary_pattern_label} value={row.primary_pattern ?? t.report.none} />
-          <SummaryStat label={t.report.validity_label} value={row.validity_confidence ?? t.report.none} />
+        {/* Larger primary stats — 2x2 on mobile, 1x4 on desktop */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mb-16">
+          <SummaryCard
+            label={t.report.primary_signature_label}
+            value={primarySignatureLabel}
+          />
+          <SummaryCard
+            label={t.report.primary_driver_label}
+            value={primaryDriverLabel}
+          />
+          <SummaryCard
+            label={t.report.primary_pattern_label}
+            value={primaryPatternLabel}
+          />
+          <SummaryCard
+            label={t.report.validity_label}
+            value={validityLabel}
+          />
         </div>
 
         {/* Signatures */}
-        <section className="mb-10">
-          <h2 className="text-xl md:text-2xl font-serif text-ink mb-5 leading-tight">
-            {t.report.signatures_section_title}
-          </h2>
-          <ul className="space-y-2">
+        <section className="mb-16">
+          <SectionHeader>{t.report.signatures_section_title}</SectionHeader>
+          <ul className="border-t border-line">
             {Object.entries(signatures).map(([name, s]) => (
-              <ScoreRow key={name} label={name} score={s.score} band={s.band} />
+              <ScoreRow
+                key={name}
+                label={localize(name, SIGNATURE_AR, lang, prettify(name))}
+                score={s.score}
+                band={localizeBand(s.band, lang)}
+              />
             ))}
           </ul>
         </section>
 
         {/* Drivers */}
-        <section className="mb-10">
-          <h2 className="text-xl md:text-2xl font-serif text-ink mb-5 leading-tight">
-            {t.report.drivers_section_title}
-          </h2>
-          <ul className="space-y-3">
+        <section className="mb-16">
+          <SectionHeader>{t.report.drivers_section_title}</SectionHeader>
+          <ul className="space-y-4">
             {Object.entries(drivers).map(([name, d]) => (
               <li
                 key={name}
-                className="border border-line bg-paper-card rounded-md p-4"
+                className="border border-line bg-paper-card rounded-md p-5 md:p-6"
               >
-                <div className="text-sm font-medium text-ink mb-2">{name}</div>
-                <div className="grid grid-cols-2 gap-4 text-xs">
-                  <div>
-                    <div className="text-ink-mute mb-1">
-                      {t.report.intensity_label}
-                    </div>
-                    <ScoreBar score={d.intensity.score} band={d.intensity.band} />
-                  </div>
-                  <div>
-                    <div className="text-ink-mute mb-1">
-                      {t.report.regulation_label}
-                    </div>
-                    <ScoreBar score={d.regulation.score} band={d.regulation.band} />
-                  </div>
+                <div className="text-base md:text-lg font-medium text-ink mb-5 leading-snug">
+                  {localize(name, DRIVER_AR, lang, prettify(name))}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 md:gap-8">
+                  <SubMetric
+                    label={t.report.intensity_label}
+                    score={d.intensity.score}
+                    band={localizeBand(d.intensity.band, lang)}
+                  />
+                  <SubMetric
+                    label={t.report.regulation_label}
+                    score={d.regulation.score}
+                    band={localizeBand(d.regulation.band, lang)}
+                  />
                 </div>
               </li>
             ))}
@@ -173,18 +302,15 @@ export default function ReportPage() {
         </section>
 
         {/* Patterns */}
-        <section className="mb-10">
-          <h2 className="text-xl md:text-2xl font-serif text-ink mb-5 leading-tight">
-            {t.report.patterns_section_title}
-          </h2>
-          <ul className="space-y-2">
+        <section className="mb-12">
+          <SectionHeader>{t.report.patterns_section_title}</SectionHeader>
+          <ul className="border-t border-line">
             {Object.entries(patterns).map(([name, p]) => (
               <ScoreRow
                 key={name}
-                label={name}
+                label={localize(name, PATTERN_AR, lang, prettify(name))}
                 score={Math.round(p.match * 100)}
-                band={p.band}
-                suffix={t.report.match_label}
+                band={localizeBand(p.band, lang)}
               />
             ))}
           </ul>
@@ -202,13 +328,31 @@ export default function ReportPage() {
   );
 }
 
-function SummaryStat({ label, value }: { label: string; value: string }) {
+// ---------------------------------------------------------------------------
+// Sub-components
+// ---------------------------------------------------------------------------
+
+function localizeBand(band: string | undefined, lang: Language): string {
+  if (!band) return "";
+  if (lang === "ar") return BAND_AR[band] ?? prettify(band);
+  return prettify(band);
+}
+
+function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
-    <div className="border border-line bg-paper-card rounded-md p-4">
-      <div className="text-[11px] uppercase tracking-[0.12em] text-ink-mute mb-1">
+    <h2 className="text-xl md:text-2xl font-serif text-ink mb-6 leading-tight">
+      {children}
+    </h2>
+  );
+}
+
+function SummaryCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="border border-line bg-paper-card rounded-md p-5 md:p-6">
+      <div className="text-[10px] md:text-[11px] uppercase tracking-[0.14em] text-ink-mute mb-3">
         {label}
       </div>
-      <div className="text-sm font-medium text-ink truncate" title={value}>
+      <div className="text-lg md:text-xl font-serif text-ink leading-snug">
         {value}
       </div>
     </div>
@@ -219,37 +363,64 @@ function ScoreRow({
   label,
   score,
   band,
-  suffix,
 }: {
   label: string;
   score: number;
   band: string;
-  suffix?: string;
 }) {
+  const clamped = Math.max(0, Math.min(100, score));
   return (
-    <li className="flex items-center gap-3 text-sm">
-      <span className="flex-1 text-ink-soft truncate">{label}</span>
-      <ScoreBar score={score} band={band} />
-      <span className="w-16 text-end text-xs text-ink-mute tabular-nums">
-        {suffix ? `${score} ${suffix}` : score}
+    <li className="flex items-center gap-3 md:gap-5 py-4 border-b border-line last:border-b-0">
+      <span className="flex-1 min-w-0 text-sm md:text-base text-ink font-medium truncate">
+        {label}
+      </span>
+      <div className="hidden sm:block w-32 md:w-48 lg:w-64 shrink-0">
+        <div className="h-1.5 bg-line rounded-full overflow-hidden">
+          <div
+            className="h-full bg-accent/60 rounded-full"
+            style={{ width: `${clamped}%` }}
+          />
+        </div>
+      </div>
+      <span className="text-[11px] uppercase tracking-wider text-ink-mute w-20 md:w-28 text-end truncate shrink-0">
+        {band}
+      </span>
+      <span className="text-sm text-ink tabular-nums w-10 text-end shrink-0">
+        {score}
       </span>
     </li>
   );
 }
 
-function ScoreBar({ score, band }: { score: number; band: string }) {
+function SubMetric({
+  label,
+  score,
+  band,
+}: {
+  label: string;
+  score: number;
+  band: string;
+}) {
   const clamped = Math.max(0, Math.min(100, score));
   return (
-    <div className="flex items-center gap-2 flex-1 min-w-[100px]">
-      <div className="flex-1 h-1.5 bg-line rounded-full overflow-hidden">
+    <div>
+      <div className="flex items-baseline justify-between mb-2">
+        <span className="text-[11px] uppercase tracking-[0.14em] text-ink-mute">
+          {label}
+        </span>
+        <span className="text-sm text-ink tabular-nums font-medium">
+          {score}
+        </span>
+      </div>
+      <div className="h-1.5 bg-line rounded-full overflow-hidden mb-2">
         <div
-          className="h-full bg-accent/60 rounded-full"
+          className="h-full bg-accent/70 rounded-full"
           style={{ width: `${clamped}%` }}
         />
       </div>
-      <span className="text-[10px] uppercase tracking-wider text-ink-mute w-20 truncate" title={band}>
+      <div className="text-[11px] uppercase tracking-wider text-ink-mute">
         {band}
-      </span>
+      </div>
     </div>
   );
 }
