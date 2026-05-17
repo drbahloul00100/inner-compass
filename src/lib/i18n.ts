@@ -165,6 +165,30 @@ export interface Translations {
   preparing: {
     title: string;
     subtitle: string;
+    error_title: string;
+    error_body: string;
+    error_retry: string;
+    error_skip: string;
+    error_no_session: string;
+  };
+  report: {
+    title: string;
+    subtitle: string;
+    primary_signature_label: string;
+    primary_driver_label: string;
+    primary_pattern_label: string;
+    validity_label: string;
+    signatures_section_title: string;
+    drivers_section_title: string;
+    patterns_section_title: string;
+    intensity_label: string;
+    regulation_label: string;
+    match_label: string;
+    placeholder_note: string;
+    loading: string;
+    not_found: string;
+    back_to_dashboard: string;
+    none: string;
   };
   callback: {
     auth_error_title: string;

@@ -90,7 +90,8 @@ export default function AuthCallback() {
       return;
     }
 
-    // Success — clear the pending key and head to the dashboard.
+    // Success — clear the pending key and head to scoring (which then
+    // redirects to /report on success or /dashboard on failure).
     try {
       window.localStorage.removeItem(PENDING_KEY);
       log("cleared PENDING_KEY");
@@ -98,7 +99,7 @@ export default function AuthCallback() {
       log("PENDING_KEY removal threw (non-fatal):", e);
     }
     setPhase("redirecting");
-    router.replace("/dashboard");
+    router.replace(`/preparing/${encodeURIComponent(pendingId)}`);
   }, [router, lang]);
 
   // Initial run: exchange code, then attempt sync. Runs ONCE per page mount.
