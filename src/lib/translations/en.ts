@@ -217,9 +217,11 @@ export const en: Translations = {
     none: "—",
     generate_section_title: "Your full report",
     generate_intro:
-      "Generate a detailed written report based on your scoring. It takes 15–30 seconds and is yours to keep.",
+      "Generate a detailed written report based on your scoring. It takes 30–90 seconds and is yours to keep.",
     generate_button: "Generate full report",
-    generating: "Writing your report — this can take 15–30 seconds…",
+    generating: "Starting your report…",
+    generating_background:
+      "Your report is being written — this usually takes 30–90 seconds. You can leave this page open.",
     generate_error:
       "We couldn't generate the report. Please try again in a moment.",
     report_section_title: "Your Inner Compass report",
@@ -227,6 +229,22 @@ export const en: Translations = {
     copy_button: "Copy report",
     copied: "Copied",
     regenerate_button: "Regenerate",
+    print_button: "🖨️ Print / Save as PDF",
+  },
+  print: {
+    title: "Inner Compass — Personal Report",
+    print_button: "🖨️ Print / Save as PDF",
+    back_to_report: "← Back to report",
+    summary_section_title: "Summary",
+    signatures_section_title: "All signatures",
+    drivers_section_title: "All drivers",
+    no_report_yet: "No report has been generated yet for this session.",
+    generated_label: "Generated",
+    session_label: "Session",
+    intensity_label: "Intensity",
+    regulation_label: "Regulation",
+    loading: "Loading…",
+    not_found: "No scoring result found for this session.",
   },
   callback: {
     auth_error_title: "Sign-in link couldn't be verified. Returning to login…",

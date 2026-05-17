@@ -210,9 +210,11 @@ export const ar: Translations = {
     none: "—",
     generate_section_title: "تقريرك الكامل",
     generate_intro:
-      "أنشئ تقريرًا مكتوبًا مفصّلًا بناءً على نتائج تحليلك. يستغرق الأمر 15–30 ثانية، والتقرير لك.",
+      "أنشئ تقريرًا مكتوبًا مفصّلًا بناءً على نتائج تحليلك. يستغرق الأمر 30–90 ثانية، والتقرير لك.",
     generate_button: "أنشئ التقرير الكامل",
-    generating: "جارٍ كتابة تقريرك — قد يستغرق ذلك 15–30 ثانية…",
+    generating: "جارٍ بدء التقرير…",
+    generating_background:
+      "جارٍ كتابة تقريرك — يستغرق الأمر عادةً بين 30 و90 ثانية. يمكنك ترك هذه الصفحة مفتوحة.",
     generate_error:
       "تعذّر إنشاء التقرير. يرجى المحاولة مرة أخرى بعد قليل.",
     report_section_title: "تقريرك من البوصلة الداخلية",
@@ -220,6 +222,22 @@ export const ar: Translations = {
     copy_button: "نسخ التقرير",
     copied: "تم النسخ",
     regenerate_button: "إعادة الإنشاء",
+    print_button: "🖨️ طباعة / تصدير PDF",
+  },
+  print: {
+    title: "البوصلة الداخلية — تقرير شخصي",
+    print_button: "🖨️ طباعة / تصدير PDF",
+    back_to_report: "→ العودة إلى التقرير",
+    summary_section_title: "الملخص",
+    signatures_section_title: "كل البصمات",
+    drivers_section_title: "كل المحركات",
+    no_report_yet: "لم يتم إنشاء تقرير لهذه الجلسة بعد.",
+    generated_label: "تاريخ الإنشاء",
+    session_label: "الجلسة",
+    intensity_label: "الشدة",
+    regulation_label: "الانضباط",
+    loading: "جارٍ التحميل…",
+    not_found: "لا توجد نتيجة تحليل لهذه الجلسة.",
   },
   preparing: {
     title: "نُحضّر نتائجك…",

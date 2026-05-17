@@ -194,12 +194,29 @@ export interface Translations {
     generate_intro: string;
     generate_button: string;
     generating: string;
+    generating_background: string;
     generate_error: string;
     report_section_title: string;
     report_meta: (words: number) => string;
     copy_button: string;
     copied: string;
     regenerate_button: string;
+    print_button: string;
+  };
+  print: {
+    title: string;
+    print_button: string;
+    back_to_report: string;
+    summary_section_title: string;
+    signatures_section_title: string;
+    drivers_section_title: string;
+    no_report_yet: string;
+    generated_label: string;
+    session_label: string;
+    intensity_label: string;
+    regulation_label: string;
+    loading: string;
+    not_found: string;
   };
   callback: {
     auth_error_title: string;

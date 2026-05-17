@@ -1,130 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import Layout from "@/components/layout/Layout";
 import Section from "@/components/ui/Section";
 import Button from "@/components/ui/Button";
 import { useLanguage } from "@/context/LanguageContext";
-import type { Language } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/client";
+import {
+  SIGNATURE_AR,
+  DRIVER_AR,
+  PATTERN_AR,
+  VALIDITY_AR,
+  localize,
+  localizeBand,
+  prettify,
+} from "@/lib/reportLabels";
 
 // ---------------------------------------------------------------------------
-// Display-time translations for engine output values.
-//
-// These live in this file (not in src/lib/translations/*) because they
-// translate engine *output values* — domain-specific labels tightly coupled
-// to the scoring constants — rather than UI chrome. UI chrome lives in
-// t.report.*. When language is EN we render the original snake_case term
-// after a small prettifier (controller → "Controller"); when AR we look up
-// the curated Arabic translation provided by the product team.
-// ---------------------------------------------------------------------------
-
-const SIGNATURE_AR: Record<string, string> = {
-  fixer: "المُصلح",
-  controller: "المتحكم",
-  vanisher: "المتغيب",
-  polisher: "المُلمِّع",
-  escalator: "المُصعِّد",
-  over_explainer: "المُبرِّر",
-  shutter: "المُغلِق",
-  accommodator: "المُهادِن",
-  critic: "الناقد",
-  sealed: "المكتوم",
-  doubler: "المُضاعِف",
-};
-
-const DRIVER_AR: Record<string, string> = {
-  hunger_to_matter: "الحاجة للأهمية",
-  hunger_to_be_seen: "الحاجة للظهور",
-  hunger_for_control: "الحاجة للسيطرة",
-  hunger_to_be_right: "الحاجة للصواب",
-  hunger_for_safety: "الحاجة للأمان",
-  hunger_to_be_loved: "الحاجة للمحبة",
-  hunger_for_freedom: "الحاجة للحرية",
-  hunger_to_belong: "الحاجة للانتماء",
-  hunger_to_be_free_of_failure: "الحاجة لتجنب الفشل",
-};
-
-const PATTERN_AR: Record<string, string> = {
-  the_performance_loop: "دائرة الأداء",
-  the_fortress: "القلعة",
-  the_loaded_carrier: "الحامل المثقل",
-  the_bargained_self: "الذات المُساوَمة",
-  the_strategic_withdrawal: "الانسحاب الاستراتيجي",
-  the_mission_bottleneck: "عنق الزجاجة",
-  the_audit: "التدقيق",
-};
-
-const BAND_AR: Record<string, string> = {
-  // signature_activation / driver_intensity
-  dominant: "مهيمن",
-  strong: "قوي",
-  present: "حاضر",
-  quiet: "هادئ",
-  // driver_regulation
-  mastered: "متحكم فيه",
-  steady: "مستقر",
-  working: "قيد العمل",
-  strained: "متوتر",
-  // recovery_cost
-  very_high: "مرتفع جداً",
-  high: "مرتفع",
-  medium: "متوسط",
-  low: "منخفض",
-  very_low: "منخفض جداً",
-  // pattern_match
-  very_strong: "قوي جداً",
-  moderate: "معتدل",
-  weak: "ضعيف",
-};
-
-const VALIDITY_AR: Record<string, string> = {
-  high: "عالية",
-  good: "جيدة",
-  moderate: "متوسطة",
-  low: "منخفضة",
-};
-
-function prettify(snake: string): string {
-  if (!snake) return "";
-  const spaced = snake.replace(/_/g, " ").trim();
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
-}
-
-function localize(
-  value: string | null | undefined,
-  map: Record<string, string>,
-  lang: Language,
-  fallback: string
-): string {
-  if (value === null || value === undefined || value === "") return fallback;
-  // Engine emits lowercase snake_case but tolerate accidental casing /
-  // whitespace drift from older rows. Try the exact key first, then a
-  // normalized form.
-  const raw = String(value);
-  const trimmed = raw.trim();
-  const lower = trimmed.toLowerCase();
-
-  if (lang === "ar") {
-    const hit = map[trimmed] ?? map[lower];
-    if (hit) return hit;
-    // Surface the miss in dev so we notice if the engine ever emits a key
-    // we don't have a translation for. Silent in production.
-    if (process.env.NODE_ENV !== "production") {
-      // eslint-disable-next-line no-console
-      console.warn("[report] no AR translation for value:", JSON.stringify(raw));
-    }
-    return prettify(trimmed);
-  }
-  return prettify(trimmed);
-}
-
-// ---------------------------------------------------------------------------
-// Minimal scoring-result shape we actually consume on this page. (The full
-// ScoringResult interface lives in src/lib/scoring/types.ts but we don't
-// import it here — importing engine types could risk pulling engine code
-// into the client bundle via barrel files. The shapes below are a hand
-// re-declaration of the consumer-only subset.)
+// Shapes
 // ---------------------------------------------------------------------------
 
 interface SignatureView {
@@ -169,6 +62,10 @@ interface ScoringRow {
 // Page
 // ---------------------------------------------------------------------------
 
+const BG_FUNCTION_URL = "/.netlify/functions/generate-report-background";
+const POLL_INTERVAL_MS = 3000;
+const POLL_MAX_DURATION_MS = 3 * 60 * 1000; // 3 minutes
+
 export default function ReportPage() {
   const router = useRouter();
   const { t, lang } = useLanguage();
@@ -176,11 +73,23 @@ export default function ReportPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
-  // Report-generation state
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // Polling control — uses refs so cleanup works even when state updates
+  // race with the interval callback.
+  const pollIntervalRef = useRef<number | null>(null);
+  const pollStartRef = useRef<number>(0);
+
+  const stopPolling = () => {
+    if (pollIntervalRef.current !== null) {
+      window.clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+  };
+
+  // Initial load.
   useEffect(() => {
     if (!router.isReady) return;
     const rawId = router.query.session_id;
@@ -214,21 +123,20 @@ export default function ReportPage() {
     };
   }, [router.isReady, router.query.session_id]);
 
+  // Cleanup polling on unmount.
+  useEffect(() => {
+    return () => stopPolling();
+  }, []);
+
+  // ---- Generate (fire-and-poll) -----------------------------------------
   const handleGenerate = async () => {
     if (!row || generating) return;
     setGenerating(true);
     setGenerateError(null);
 
-    // Generous client cap. Server budget is 26s; 45s gives ample slack for
-    // cold-start, network, and Netlify's edge proxy hops without ever
-    // cutting off mid-response. If the server itself 504s we'll hear about
-    // it through the !res.ok branch with status 504, not a client abort.
-    const controller = new AbortController();
-    const FETCH_TIMEOUT_MS = 45000;
-    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-
+    // Kick off the background job.
     try {
-      const res = await fetch("/api/generate-report", {
+      const res = await fetch(BG_FUNCTION_URL, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -236,71 +144,64 @@ export default function ReportPage() {
           scoring_json: row.scoring_json,
           language: lang,
         }),
-        signal: controller.signal,
       });
-
-      clearTimeout(timeoutId);
-
-      if (!res.ok) {
+      // Background functions respond 202 Accepted immediately. Anything else
+      // (4xx/5xx) means we couldn't even start the job — surface to user.
+      if (res.status !== 202 && !res.ok) {
         const text = await res.text().catch(() => "");
         // eslint-disable-next-line no-console
-        console.warn("[report] generate-report not ok:", res.status, text);
+        console.warn("[report] background fn rejected:", res.status, text);
         setGenerateError(`${res.status} ${text.slice(0, 200)}`);
         setGenerating(false);
         return;
       }
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : String(e);
+      // eslint-disable-next-line no-console
+      console.warn("[report] background fn fetch error:", detail);
+      setGenerateError(detail);
+      setGenerating(false);
+      return;
+    }
 
-      const body = (await res.json()) as {
-        report_text?: string;
-        word_count?: number;
-        generated_at?: string;
-      };
-
-      const reportText = typeof body.report_text === "string" ? body.report_text : "";
-      if (!reportText) {
-        setGenerateError("empty_response");
+    // Start polling scoring_results for the saved report_text.
+    pollStartRef.current = Date.now();
+    pollIntervalRef.current = window.setInterval(async () => {
+      // Hard cap so we don't poll forever.
+      if (Date.now() - pollStartRef.current > POLL_MAX_DURATION_MS) {
+        stopPolling();
+        setGenerateError("timeout_waiting_for_report");
         setGenerating(false);
         return;
       }
 
-      const generatedAt = body.generated_at ?? new Date().toISOString();
-
-      // Persist back to Supabase. RLS already allows updates on this table
-      // (Phase 3 permissive policy). Best-effort: if the write fails, we
-      // still render the report from in-memory state so the user gets value.
       try {
         const supabase = createClient();
-        await supabase
+        const { data, error } = await supabase
           .from("scoring_results")
-          .update({
-            report_text: reportText,
-            report_generated_at: generatedAt,
-          })
-          .eq("session_id", row.session_id);
-      } catch (e) {
-        // eslint-disable-next-line no-console
-        console.warn("[report] failed to persist report_text (non-fatal):", e);
-      }
+          .select("report_text, report_generated_at")
+          .eq("session_id", row.session_id)
+          .maybeSingle();
 
-      setRow({
-        ...row,
-        report_text: reportText,
-        report_generated_at: generatedAt,
-      });
-      setGenerating(false);
-    } catch (e) {
-      clearTimeout(timeoutId);
-      const isAbort = e instanceof Error && e.name === "AbortError";
-      const detail = isAbort
-        ? `client_timeout_after_${FETCH_TIMEOUT_MS}ms`
-        : e instanceof Error
-        ? e.message
-        : String(e);
-      // eslint-disable-next-line no-console
-      console.warn("[report] generate fetch error:", detail);
-      setGenerateError(detail);
-      setGenerating(false);
-    }
+        if (error) return; // keep polling; transient errors aren't fatal
+        if (data && data.report_text) {
+          stopPolling();
+          setRow((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  report_text: data.report_text as string,
+                  report_generated_at:
+                    (data.report_generated_at as string | null) ?? null,
+                }
+              : prev
+          );
+          setGenerating(false);
+        }
+      } catch {
+        // Continue polling on transient errors.
+      }
+    }, POLL_INTERVAL_MS);
   };
 
   const handleCopy = async () => {
@@ -314,6 +215,8 @@ export default function ReportPage() {
       console.warn("[report] copy failed:", e);
     }
   };
+
+  // ---- Render -----------------------------------------------------------
 
   if (loading) {
     return (
@@ -360,7 +263,7 @@ export default function ReportPage() {
           {t.report.subtitle}
         </p>
 
-        {/* Larger primary stats — 2x2 on mobile, 1x4 on desktop */}
+        {/* Primary stats — 2x2 on mobile, 1x4 on desktop */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mb-16">
           <SummaryCard
             label={t.report.primary_signature_label}
@@ -449,12 +352,10 @@ export default function ReportPage() {
               sectionTitle={t.report.report_section_title}
               copyLabel={t.report.copy_button}
               copiedLabel={t.report.copied}
-              regenerateLabel={t.report.regenerate_button}
-              generatingLabel={t.report.generating}
+              printLabel={t.report.print_button}
+              printHref={`/report/${encodeURIComponent(row.session_id)}/print`}
               copied={copied}
               onCopy={handleCopy}
-              onRegenerate={handleGenerate}
-              regenerating={generating}
             />
           ) : (
             <GeneratePrompt
@@ -462,6 +363,7 @@ export default function ReportPage() {
               intro={t.report.generate_intro}
               buttonLabel={t.report.generate_button}
               generatingLabel={t.report.generating}
+              generatingBackgroundLabel={t.report.generating_background}
               errorLabel={t.report.generate_error}
               generating={generating}
               error={generateError}
@@ -482,12 +384,6 @@ export default function ReportPage() {
 // Sub-components
 // ---------------------------------------------------------------------------
 
-function localizeBand(band: string | undefined, lang: Language): string {
-  if (!band) return "";
-  if (lang === "ar") return BAND_AR[band] ?? prettify(band);
-  return prettify(band);
-}
-
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
     <h2 className="text-xl md:text-2xl font-serif text-ink mb-6 leading-tight">
@@ -502,9 +398,6 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
       <div className="text-[10px] md:text-[11px] uppercase tracking-[0.14em] text-ink-mute mb-3">
         {label}
       </div>
-      {/* break-words + overflow-wrap prevent long single tokens from
-          overflowing the card; flex-1 lets the value occupy remaining
-          vertical space so card heights line up across the row. */}
       <div
         className="text-lg md:text-xl font-serif text-ink leading-snug flex-1 break-words"
         style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}
@@ -548,142 +441,6 @@ function ScoreRow({
   );
 }
 
-function GeneratePrompt({
-  title,
-  intro,
-  buttonLabel,
-  generatingLabel,
-  errorLabel,
-  generating,
-  error,
-  onGenerate,
-}: {
-  title: string;
-  intro: string;
-  buttonLabel: string;
-  generatingLabel: string;
-  errorLabel: string;
-  generating: boolean;
-  error: string | null;
-  onGenerate: () => void;
-}) {
-  return (
-    <div>
-      <h2 className="text-xl md:text-2xl font-serif text-ink mb-3 leading-tight">
-        {title}
-      </h2>
-      <p className="text-ink-soft leading-relaxed mb-6 max-w-prose">{intro}</p>
-
-      {generating ? (
-        <div className="flex items-center gap-4">
-          <div
-            aria-hidden
-            className="h-5 w-5 rounded-full border-2 border-line border-t-accent motion-safe:animate-spin"
-          />
-          <p className="text-sm text-ink-mute">{generatingLabel}</p>
-        </div>
-      ) : (
-        <Button onClick={onGenerate} size="lg" className="w-full sm:w-auto">
-          {buttonLabel}
-        </Button>
-      )}
-
-      {error && !generating && (
-        <div className="mt-5 max-w-prose">
-          <p
-            role="alert"
-            className="text-sm text-accent-deep bg-accent/[0.06] border border-accent/25 rounded-md px-4 py-3"
-          >
-            {errorLabel}
-          </p>
-          <p className="text-xs text-ink-mute font-mono break-all mt-2 opacity-70">
-            {error}
-          </p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function GeneratedReport({
-  text,
-  wordCount,
-  wordsLabel,
-  sectionTitle,
-  copyLabel,
-  copiedLabel,
-  regenerateLabel,
-  generatingLabel,
-  copied,
-  onCopy,
-  onRegenerate,
-  regenerating,
-}: {
-  text: string;
-  wordCount: number;
-  wordsLabel: (n: number) => string;
-  sectionTitle: string;
-  copyLabel: string;
-  copiedLabel: string;
-  regenerateLabel: string;
-  generatingLabel: string;
-  copied: boolean;
-  onCopy: () => void;
-  onRegenerate: () => void;
-  regenerating: boolean;
-}) {
-  // Split on blank lines; trim and drop empty paragraphs.
-  const paragraphs = text
-    .split(/\n{2,}/)
-    .map((p) => p.trim())
-    .filter((p) => p.length > 0);
-
-  return (
-    <div>
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
-        <div>
-          <h2 className="text-xl md:text-2xl font-serif text-ink leading-tight mb-1">
-            {sectionTitle}
-          </h2>
-          <p className="text-xs text-ink-mute">{wordsLabel(wordCount)}</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="secondary" onClick={onCopy} disabled={regenerating}>
-            {copied ? copiedLabel : copyLabel}
-          </Button>
-          <Button variant="ghost" onClick={onRegenerate} disabled={regenerating}>
-            {regenerateLabel}
-          </Button>
-        </div>
-      </div>
-
-      {regenerating && (
-        <div className="flex items-center gap-3 mb-6 text-sm text-ink-mute">
-          <div
-            aria-hidden
-            className="h-4 w-4 rounded-full border-2 border-line border-t-accent motion-safe:animate-spin"
-          />
-          <p>{generatingLabel}</p>
-        </div>
-      )}
-
-      <article className="bg-paper-card border border-line rounded-md p-6 md:p-10">
-        <div className="space-y-5 text-ink-soft leading-[1.85] text-[1.0625rem]">
-          {paragraphs.map((p, i) => (
-            <p key={i} className="whitespace-pre-line">
-              {p}
-            </p>
-          ))}
-        </div>
-      </article>
-    </div>
-  );
-}
-
-function countWords(text: string): number {
-  return text.trim().split(/\s+/).filter(Boolean).length;
-}
-
 function SubMetric({
   label,
   score,
@@ -715,4 +472,143 @@ function SubMetric({
       </div>
     </div>
   );
+}
+
+function GeneratePrompt({
+  title,
+  intro,
+  buttonLabel,
+  generatingLabel,
+  generatingBackgroundLabel,
+  errorLabel,
+  generating,
+  error,
+  onGenerate,
+}: {
+  title: string;
+  intro: string;
+  buttonLabel: string;
+  generatingLabel: string;
+  generatingBackgroundLabel: string;
+  errorLabel: string;
+  generating: boolean;
+  error: string | null;
+  onGenerate: () => void;
+}) {
+  return (
+    <div>
+      <h2 className="text-xl md:text-2xl font-serif text-ink mb-3 leading-tight">
+        {title}
+      </h2>
+      <p className="text-ink-soft leading-relaxed mb-6 max-w-prose">{intro}</p>
+
+      {generating ? (
+        <div className="flex items-start gap-4 max-w-prose">
+          <div
+            aria-hidden
+            className="h-5 w-5 mt-0.5 shrink-0 rounded-full border-2 border-line border-t-accent motion-safe:animate-spin"
+          />
+          <p className="text-sm text-ink-soft leading-relaxed">
+            {generatingBackgroundLabel || generatingLabel}
+          </p>
+        </div>
+      ) : (
+        <Button onClick={onGenerate} size="lg" className="w-full sm:w-auto">
+          {buttonLabel}
+        </Button>
+      )}
+
+      {error && !generating && (
+        <div className="mt-5 max-w-prose">
+          <p
+            role="alert"
+            className="text-sm text-accent-deep bg-accent/[0.06] border border-accent/25 rounded-md px-4 py-3"
+          >
+            {errorLabel}
+          </p>
+          <p className="text-xs text-ink-mute font-mono break-all mt-2 opacity-70">
+            {error}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GeneratedReport({
+  text,
+  wordCount,
+  wordsLabel,
+  sectionTitle,
+  copyLabel,
+  copiedLabel,
+  printLabel,
+  printHref,
+  copied,
+  onCopy,
+}: {
+  text: string;
+  wordCount: number;
+  wordsLabel: (n: number) => string;
+  sectionTitle: string;
+  copyLabel: string;
+  copiedLabel: string;
+  printLabel: string;
+  printHref: string;
+  copied: boolean;
+  onCopy: () => void;
+}) {
+  // Split on blank lines; render `## Header` blocks as section headers,
+  // everything else as paragraphs.
+  const blocks = text
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+
+  return (
+    <div>
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
+        <div>
+          <h2 className="text-xl md:text-2xl font-serif text-ink leading-tight mb-1">
+            {sectionTitle}
+          </h2>
+          <p className="text-xs text-ink-mute">{wordsLabel(wordCount)}</p>
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="secondary" onClick={onCopy}>
+            {copied ? copiedLabel : copyLabel}
+          </Button>
+          <a href={printHref} target="_blank" rel="noopener noreferrer">
+            <Button variant="primary">{printLabel}</Button>
+          </a>
+        </div>
+      </div>
+
+      <article className="bg-paper-card border border-line rounded-md p-6 md:p-10">
+        <div className="space-y-5 text-ink-soft leading-[1.85] text-[1.0625rem]">
+          {blocks.map((block, i) => {
+            if (block.startsWith("## ")) {
+              return (
+                <h3
+                  key={i}
+                  className="text-lg md:text-xl font-serif text-ink mt-6 mb-1 first:mt-0 leading-snug"
+                >
+                  {block.slice(3).trim()}
+                </h3>
+              );
+            }
+            return (
+              <p key={i} className="whitespace-pre-line">
+                {block}
+              </p>
+            );
+          })}
+        </div>
+      </article>
+    </div>
+  );
+}
+
+function countWords(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length;
 }
