@@ -97,11 +97,26 @@ function localize(
   lang: Language,
   fallback: string
 ): string {
-  if (!value) return fallback;
+  if (value === null || value === undefined || value === "") return fallback;
+  // Engine emits lowercase snake_case but tolerate accidental casing /
+  // whitespace drift from older rows. Try the exact key first, then a
+  // normalized form.
+  const raw = String(value);
+  const trimmed = raw.trim();
+  const lower = trimmed.toLowerCase();
+
   if (lang === "ar") {
-    return map[value] ?? prettify(value);
+    const hit = map[trimmed] ?? map[lower];
+    if (hit) return hit;
+    // Surface the miss in dev so we notice if the engine ever emits a key
+    // we don't have a translation for. Silent in production.
+    if (process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.warn("[report] no AR translation for value:", JSON.stringify(raw));
+    }
+    return prettify(trimmed);
   }
-  return prettify(value);
+  return prettify(trimmed);
 }
 
 // ---------------------------------------------------------------------------
@@ -348,11 +363,17 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border border-line bg-paper-card rounded-md p-5 md:p-6">
+    <div className="flex flex-col border border-line bg-paper-card rounded-md p-5 md:p-6 min-h-[120px]">
       <div className="text-[10px] md:text-[11px] uppercase tracking-[0.14em] text-ink-mute mb-3">
         {label}
       </div>
-      <div className="text-lg md:text-xl font-serif text-ink leading-snug">
+      {/* break-words + overflow-wrap prevent long single tokens from
+          overflowing the card; flex-1 lets the value occupy remaining
+          vertical space so card heights line up across the row. */}
+      <div
+        className="text-lg md:text-xl font-serif text-ink leading-snug flex-1 break-words"
+        style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}
+      >
         {value}
       </div>
     </div>
