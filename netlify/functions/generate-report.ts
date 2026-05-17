@@ -19,31 +19,28 @@ export const config = {
   timeout: 26,
 };
 
-const SYSTEM_PROMPT_BASE = `You are the Inner Compass report writer. You write personal self-awareness reports in the second person ("you"), warm but direct tone, no clinical language. You never use bullet points in the narrative. You write in flowing paragraphs. The report is based entirely on the scoring data provided — do not invent or assume anything not in the data.
+// Compact 4-paragraph prompt designed to fit comfortably inside the 26s
+// Netlify Pro function budget. Earlier 10-section versions ran 25-35s and
+// timed out under load.
+const SYSTEM_PROMPT_BASE = `You are the Inner Compass report writer. Write a personal self-awareness report in second person, warm but direct tone, no bullet points, flowing paragraphs only. Maximum 500 words total. Write exactly 4 paragraphs:
+1. Who you become under pressure (name the primary signature)
+2. The inner driver beneath it (name the primary driver)
+3. The pattern this creates (name the primary pattern)
+4. What this costs you and what it gives you
+Be specific, use the actual names from the scoring data. No filler sentences.
+For Arabic: write entirely in Arabic with the same structure.`;
 
-Report structure (write all sections):
-1. Opening (2 paragraphs): Who you become under pressure — name the primary signature directly and describe what it looks like behaviorally
-2. The Pressure Signature (3 paragraphs): Deep exploration of the primary signature — when it activates, what it costs, what it protects
-3. The Inner Driver (2 paragraphs): The hunger underneath the signature — what it's really about, where it comes from
-4. The Pattern (2 paragraphs): How the signature and driver combine into a named pattern — what triggers it, how it plays out
-5. The Supporting Cast (2 paragraphs): Secondary signatures and how they interact with the primary
-6. What This Costs You (2 paragraphs): Real costs of this profile in work and relationships
-7. What This Gives You (1 paragraph): The genuine strengths hidden in this profile
-8. The Regulation Picture (2 paragraphs): How well you manage these patterns — based on regulation scores
-9. A Note on Validity (1 paragraph): Brief honest note on response confidence level
-10. Closing (1 paragraph): Warm, direct close — not motivational, not clinical
-
-Write between 800 and 1000 words total. Keep paragraphs tight. Be specific, use the actual names from the data.`;
-
+// Small Arabic-specific reinforcement so construct names are translated
+// naturally instead of left as English snake_case mid-sentence.
 const ARABIC_INSTRUCTION = `
 
-IMPORTANT: Write the entire report in Modern Standard Arabic. Use natural, mature, professional Arabic — never literal translation. Keep the same 10-section structure described above. Translate the signature, driver, and pattern names naturally into Arabic where appropriate. Examples: "controller" → "المتحكم", "hunger_for_control" → "الحاجة للسيطرة", "the_fortress" → "القلعة", "the_audit" → "التدقيق". Use Western digits (1, 2, 3...) for any numbers. Do not include the English construct names alongside the Arabic ones.`;
+Language: Arabic. Use natural Modern Standard Arabic. Translate signature/driver/pattern names: controller→المتحكم, hunger_for_control→الحاجة للسيطرة, the_fortress→القلعة, etc. Use Western digits for any numbers.`;
 
 const MODEL_ID = "claude-sonnet-4-5";
-// 2000 tokens ≈ 1100-1300 English words at Sonnet 4.5 tokenization. That
-// gives the model headroom to land an 800-1000 word report cleanly without
-// truncation, while keeping generation time under the 26s function budget.
-const MAX_TOKENS = 2000;
+// 800 tokens ≈ 500-600 English words at Sonnet 4.5 tokenization. Matches
+// the new 400-500 word prompt target with just enough headroom for clean
+// landing, keeping generation time well under the 26s function budget.
+const MAX_TOKENS = 800;
 
 interface RequestBody {
   session_id?: unknown;

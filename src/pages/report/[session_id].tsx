@@ -219,11 +219,12 @@ export default function ReportPage() {
     setGenerating(true);
     setGenerateError(null);
 
-    // Match the Netlify function's 26s timeout with a small client buffer so
-    // we don't abort just before the server responds. Server cap is 26s;
-    // adding ~4s of network/TLS slack puts the client at 30s.
+    // Generous client cap. Server budget is 26s; 45s gives ample slack for
+    // cold-start, network, and Netlify's edge proxy hops without ever
+    // cutting off mid-response. If the server itself 504s we'll hear about
+    // it through the !res.ok branch with status 504, not a client abort.
     const controller = new AbortController();
-    const FETCH_TIMEOUT_MS = 30000;
+    const FETCH_TIMEOUT_MS = 45000;
     const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
     try {
