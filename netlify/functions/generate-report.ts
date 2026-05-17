@@ -22,38 +22,30 @@ export const config = {
   timeout: 26,
 };
 
-const SYSTEM_PROMPT_BASE = `You are the Inner Compass report writer. Write a personal self-awareness report based on the scoring data provided. 600-700 words total. Write in flowing paragraphs only — no bullet points, no lists, no numbered items.
+const SYSTEM_PROMPT_BASE = `You are the Inner Compass report writer.
 
-Tone: second person ("you"), warm but direct, no clinical or therapy language. Be specific and personal — name the actual signature, driver, and pattern from the data. Never use generic placeholders.
+You MUST write ALL 7 sections completely. Each section gets exactly ONE paragraph of 3-4 sentences. Total target: 700-800 words. Never stop before completing the Closing section. This is a hard requirement.
 
-Structure the report as exactly 7 sections. Each section header must appear on its own line, prefixed with "## ", followed by a blank line, then ONE paragraph of approximately 80-100 words:
-
+Sections (write them in this exact order, with ## prefix):
 ## Who You Become Under Pressure
-One paragraph. How the primary signature shows up in real moments. Vivid and recognizable.
-
 ## The Pressure Signature
-One paragraph. Name the primary signature directly. What it is, when it activates, what it protects.
-
 ## The Inner Driver
-One paragraph. Name the primary driver directly. The deeper hunger underneath the signature.
-
 ## The Behavioral Pattern
-One paragraph. Name the primary pattern directly. How signature + driver combine and play out across work and relationships.
-
 ## What This Costs You
-One paragraph. Real costs in work and relationships. Reference regulation scores if they suggest depletion.
-
 ## The Hidden Strength
-One paragraph. The genuine strength inside this profile — what the same signature, used consciously, gives you.
-
 ## Closing
-One paragraph. Warm, direct, grounded. Acknowledge the work of self-knowledge.`;
+
+Tone: second person ("you"), warm but direct, no clinical or therapy language. Write in flowing prose — no bullet points, no lists, no numbered items.
+
+Be specific and personal — name the actual signature, driver, and pattern from the scoring data provided. Never use generic placeholders.`;
 
 const ARABIC_INSTRUCTION = `
 
 LANGUAGE: ARABIC. Write the entire report in natural Modern Standard Arabic — never literal translation, never English mid-sentence.
 
-Section headers in Arabic (use these exact phrases, prefixed with "## "):
+You MUST write ALL 7 sections completely. Each section gets exactly ONE paragraph of 3-4 sentences. Total target: 700-800 words. Never stop before completing the "خلاصة" section. This is a hard requirement.
+
+Sections (use these EXACT headers, in this exact order, each prefixed with "## "):
 ## من تصبح تحت الضغط
 ## الصفة الأساسية
 ## المحرك الداخلي
@@ -70,10 +62,12 @@ Patterns: the_performance_loop→دائرة الأداء, the_fortress→الق�
 Use Western digits (1, 2, 3) for any numbers. Do not include the English construct names alongside the Arabic ones.`;
 
 const MODEL_ID = "claude-sonnet-4-5";
-// 1200 tokens ≈ 700-900 English words at Sonnet 4.5 tokenization. Matches
-// the 600-700 word prompt target with headroom for clean section landing.
-// Keeps total generation time below the 26s Pro sync function ceiling.
-const MAX_TOKENS = 1200;
+// 3000 tokens is well above the 700-800 word target (~1100 tokens). The
+// generous cap exists so the model never truncates mid-section. The prompt
+// itself enforces the word target — Sonnet 4.5 follows the explicit "ALL 7
+// sections / 3-4 sentences each" mandate and stops naturally well before
+// hitting the cap. Expected wall-clock: ~16-22s at ~70 output tokens/sec.
+const MAX_TOKENS = 3000;
 
 interface RequestBody {
   session_id?: unknown;
@@ -143,8 +137,8 @@ export default async (req: Request): Promise<Response> => {
 
   const userMessage =
     language === "ar"
-      ? `بيانات التحليل لهذه الجلسة:\n\n\`\`\`json\n${JSON.stringify(body.scoring_json, null, 2)}\n\`\`\`\n\nاكتب التقرير الكامل وفق البنية المحددة في النظام (7 أقسام، فقرة واحدة لكل قسم، 600-700 كلمة).`
-      : `Here is the scoring data for this session:\n\n\`\`\`json\n${JSON.stringify(body.scoring_json, null, 2)}\n\`\`\`\n\nWrite the full 7-section report following the structure exactly. One paragraph per section. 600-700 words total.`;
+      ? `بيانات التحليل لهذه الجلسة:\n\n\`\`\`json\n${JSON.stringify(body.scoring_json, null, 2)}\n\`\`\`\n\nاكتب التقرير الكامل بجميع الأقسام السبعة. لا تتوقف قبل إكمال قسم "## خلاصة". 700-800 كلمة إجمالًا، فقرة واحدة من 3-4 جمل لكل قسم.`
+      : `Here is the scoring data for this session:\n\n\`\`\`json\n${JSON.stringify(body.scoring_json, null, 2)}\n\`\`\`\n\nWrite the complete report with all 7 sections. Do not stop before completing the "## Closing" section. 700-800 words total, one paragraph (3-4 sentences) per section.`;
 
   const startMs = Date.now();
   let apiResponse: Response;
