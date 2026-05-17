@@ -161,6 +161,8 @@ interface ScoringRow {
   primary_pattern: string | null;
   validity_confidence: string | null;
   scored_at: string;
+  report_text: string | null;
+  report_generated_at: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -174,6 +176,11 @@ export default function ReportPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
+  // Report-generation state
+  const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
   useEffect(() => {
     if (!router.isReady) return;
     const rawId = router.query.session_id;
@@ -186,7 +193,7 @@ export default function ReportPage() {
       const { data, error } = await supabase
         .from("scoring_results")
         .select(
-          "session_id, engine_version, scoring_json, primary_signature, primary_driver, primary_pattern, validity_confidence, scored_at"
+          "session_id, engine_version, scoring_json, primary_signature, primary_driver, primary_pattern, validity_confidence, scored_at, report_text, report_generated_at"
         )
         .eq("session_id", sessionId)
         .maybeSingle();
@@ -206,6 +213,90 @@ export default function ReportPage() {
       cancelled = true;
     };
   }, [router.isReady, router.query.session_id]);
+
+  const handleGenerate = async () => {
+    if (!row || generating) return;
+    setGenerating(true);
+    setGenerateError(null);
+
+    try {
+      const res = await fetch("/api/generate-report", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          session_id: row.session_id,
+          scoring_json: row.scoring_json,
+          language: lang,
+        }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        // eslint-disable-next-line no-console
+        console.warn("[report] generate-report not ok:", res.status, text);
+        setGenerateError(`${res.status} ${text.slice(0, 200)}`);
+        setGenerating(false);
+        return;
+      }
+
+      const body = (await res.json()) as {
+        report_text?: string;
+        word_count?: number;
+        generated_at?: string;
+      };
+
+      const reportText = typeof body.report_text === "string" ? body.report_text : "";
+      if (!reportText) {
+        setGenerateError("empty_response");
+        setGenerating(false);
+        return;
+      }
+
+      const generatedAt = body.generated_at ?? new Date().toISOString();
+
+      // Persist back to Supabase. RLS already allows updates on this table
+      // (Phase 3 permissive policy). Best-effort: if the write fails, we
+      // still render the report from in-memory state so the user gets value.
+      try {
+        const supabase = createClient();
+        await supabase
+          .from("scoring_results")
+          .update({
+            report_text: reportText,
+            report_generated_at: generatedAt,
+          })
+          .eq("session_id", row.session_id);
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn("[report] failed to persist report_text (non-fatal):", e);
+      }
+
+      setRow({
+        ...row,
+        report_text: reportText,
+        report_generated_at: generatedAt,
+      });
+      setGenerating(false);
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : String(e);
+      // eslint-disable-next-line no-console
+      console.warn("[report] generate fetch error:", detail);
+      setGenerateError(detail);
+      setGenerating(false);
+    }
+  };
+
+  const handleCopy = async () => {
+    if (!row?.report_text) return;
+    try {
+      await navigator.clipboard.writeText(row.report_text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn("[report] copy failed:", e);
+    }
+  };
 
   if (loading) {
     return (
@@ -331,9 +422,36 @@ export default function ReportPage() {
           </ul>
         </section>
 
-        <p className="text-xs italic text-ink-mute mb-8">
-          {t.report.placeholder_note}
-        </p>
+        {/* Phase 4: full written report section */}
+        <section className="mb-12 border-t border-line pt-12">
+          {row.report_text ? (
+            <GeneratedReport
+              text={row.report_text}
+              wordCount={countWords(row.report_text)}
+              wordsLabel={t.report.report_meta}
+              sectionTitle={t.report.report_section_title}
+              copyLabel={t.report.copy_button}
+              copiedLabel={t.report.copied}
+              regenerateLabel={t.report.regenerate_button}
+              generatingLabel={t.report.generating}
+              copied={copied}
+              onCopy={handleCopy}
+              onRegenerate={handleGenerate}
+              regenerating={generating}
+            />
+          ) : (
+            <GeneratePrompt
+              title={t.report.generate_section_title}
+              intro={t.report.generate_intro}
+              buttonLabel={t.report.generate_button}
+              generatingLabel={t.report.generating}
+              errorLabel={t.report.generate_error}
+              generating={generating}
+              error={generateError}
+              onGenerate={handleGenerate}
+            />
+          )}
+        </section>
 
         <Link href="/dashboard">
           <Button variant="ghost">{t.report.back_to_dashboard}</Button>
@@ -411,6 +529,142 @@ function ScoreRow({
       </span>
     </li>
   );
+}
+
+function GeneratePrompt({
+  title,
+  intro,
+  buttonLabel,
+  generatingLabel,
+  errorLabel,
+  generating,
+  error,
+  onGenerate,
+}: {
+  title: string;
+  intro: string;
+  buttonLabel: string;
+  generatingLabel: string;
+  errorLabel: string;
+  generating: boolean;
+  error: string | null;
+  onGenerate: () => void;
+}) {
+  return (
+    <div>
+      <h2 className="text-xl md:text-2xl font-serif text-ink mb-3 leading-tight">
+        {title}
+      </h2>
+      <p className="text-ink-soft leading-relaxed mb-6 max-w-prose">{intro}</p>
+
+      {generating ? (
+        <div className="flex items-center gap-4">
+          <div
+            aria-hidden
+            className="h-5 w-5 rounded-full border-2 border-line border-t-accent motion-safe:animate-spin"
+          />
+          <p className="text-sm text-ink-mute">{generatingLabel}</p>
+        </div>
+      ) : (
+        <Button onClick={onGenerate} size="lg" className="w-full sm:w-auto">
+          {buttonLabel}
+        </Button>
+      )}
+
+      {error && !generating && (
+        <div className="mt-5 max-w-prose">
+          <p
+            role="alert"
+            className="text-sm text-accent-deep bg-accent/[0.06] border border-accent/25 rounded-md px-4 py-3"
+          >
+            {errorLabel}
+          </p>
+          <p className="text-xs text-ink-mute font-mono break-all mt-2 opacity-70">
+            {error}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GeneratedReport({
+  text,
+  wordCount,
+  wordsLabel,
+  sectionTitle,
+  copyLabel,
+  copiedLabel,
+  regenerateLabel,
+  generatingLabel,
+  copied,
+  onCopy,
+  onRegenerate,
+  regenerating,
+}: {
+  text: string;
+  wordCount: number;
+  wordsLabel: (n: number) => string;
+  sectionTitle: string;
+  copyLabel: string;
+  copiedLabel: string;
+  regenerateLabel: string;
+  generatingLabel: string;
+  copied: boolean;
+  onCopy: () => void;
+  onRegenerate: () => void;
+  regenerating: boolean;
+}) {
+  // Split on blank lines; trim and drop empty paragraphs.
+  const paragraphs = text
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+
+  return (
+    <div>
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
+        <div>
+          <h2 className="text-xl md:text-2xl font-serif text-ink leading-tight mb-1">
+            {sectionTitle}
+          </h2>
+          <p className="text-xs text-ink-mute">{wordsLabel(wordCount)}</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={onCopy} disabled={regenerating}>
+            {copied ? copiedLabel : copyLabel}
+          </Button>
+          <Button variant="ghost" onClick={onRegenerate} disabled={regenerating}>
+            {regenerateLabel}
+          </Button>
+        </div>
+      </div>
+
+      {regenerating && (
+        <div className="flex items-center gap-3 mb-6 text-sm text-ink-mute">
+          <div
+            aria-hidden
+            className="h-4 w-4 rounded-full border-2 border-line border-t-accent motion-safe:animate-spin"
+          />
+          <p>{generatingLabel}</p>
+        </div>
+      )}
+
+      <article className="bg-paper-card border border-line rounded-md p-6 md:p-10">
+        <div className="space-y-5 text-ink-soft leading-[1.85] text-[1.0625rem]">
+          {paragraphs.map((p, i) => (
+            <p key={i} className="whitespace-pre-line">
+              {p}
+            </p>
+          ))}
+        </div>
+      </article>
+    </div>
+  );
+}
+
+function countWords(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
 function SubMetric({

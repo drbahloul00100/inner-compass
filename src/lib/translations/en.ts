@@ -215,6 +215,18 @@ export const en: Translations = {
     not_found: "No scoring result found for this session yet.",
     back_to_dashboard: "Back to dashboard",
     none: "—",
+    generate_section_title: "Your full report",
+    generate_intro:
+      "Generate a detailed written report based on your scoring. It takes 15–30 seconds and is yours to keep.",
+    generate_button: "Generate full report",
+    generating: "Writing your report — this can take 15–30 seconds…",
+    generate_error:
+      "We couldn't generate the report. Please try again in a moment.",
+    report_section_title: "Your Inner Compass report",
+    report_meta: (words) => `${words.toLocaleString("en-US")} words`,
+    copy_button: "Copy report",
+    copied: "Copied",
+    regenerate_button: "Regenerate",
   },
   callback: {
     auth_error_title: "Sign-in link couldn't be verified. Returning to login…",

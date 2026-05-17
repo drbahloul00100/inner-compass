@@ -208,6 +208,18 @@ export const ar: Translations = {
     not_found: "لا توجد نتيجة تحليل لهذه الجلسة بعد.",
     back_to_dashboard: "العودة إلى لوحة التحكم",
     none: "—",
+    generate_section_title: "تقريرك الكامل",
+    generate_intro:
+      "أنشئ تقريرًا مكتوبًا مفصّلًا بناءً على نتائج تحليلك. يستغرق الأمر 15–30 ثانية، والتقرير لك.",
+    generate_button: "أنشئ التقرير الكامل",
+    generating: "جارٍ كتابة تقريرك — قد يستغرق ذلك 15–30 ثانية…",
+    generate_error:
+      "تعذّر إنشاء التقرير. يرجى المحاولة مرة أخرى بعد قليل.",
+    report_section_title: "تقريرك من البوصلة الداخلية",
+    report_meta: (words) => `${words.toLocaleString("en-US")} كلمة`,
+    copy_button: "نسخ التقرير",
+    copied: "تم النسخ",
+    regenerate_button: "إعادة الإنشاء",
   },
   preparing: {
     title: "نُحضّر نتائجك…",

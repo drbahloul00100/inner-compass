@@ -189,6 +189,17 @@ export interface Translations {
     not_found: string;
     back_to_dashboard: string;
     none: string;
+    // Phase 4: full-report generation UI
+    generate_section_title: string;
+    generate_intro: string;
+    generate_button: string;
+    generating: string;
+    generate_error: string;
+    report_section_title: string;
+    report_meta: (words: number) => string;
+    copy_button: string;
+    copied: string;
+    regenerate_button: string;
   };
   callback: {
     auth_error_title: string;
