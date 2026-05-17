@@ -10,6 +10,15 @@
 // returned report into scoring_results.report_text after a successful
 // call — that way one code path owns caching.
 
+// Config is exported at the top so it's discoverable. Pro plan allows
+// synchronous functions to run up to 26 seconds (vs. 10 seconds on the
+// free tier) — we use the full budget. `path` exposes the function at
+// /api/generate-report.
+export const config = {
+  path: "/api/generate-report",
+  timeout: 26,
+};
+
 const SYSTEM_PROMPT_BASE = `You are the Inner Compass report writer. You write personal self-awareness reports in the second person ("you"), warm but direct tone, no clinical language. You never use bullet points in the narrative. You write in flowing paragraphs. The report is based entirely on the scoring data provided — do not invent or assume anything not in the data.
 
 Report structure (write all sections):
@@ -24,14 +33,17 @@ Report structure (write all sections):
 9. A Note on Validity (1 paragraph): Brief honest note on response confidence level
 10. Closing (1 paragraph): Warm, direct close — not motivational, not clinical
 
-Write between 1200-1800 words for lite mode. Be specific, use the actual names from the data.`;
+Write between 800 and 1000 words total. Keep paragraphs tight. Be specific, use the actual names from the data.`;
 
 const ARABIC_INSTRUCTION = `
 
 IMPORTANT: Write the entire report in Modern Standard Arabic. Use natural, mature, professional Arabic — never literal translation. Keep the same 10-section structure described above. Translate the signature, driver, and pattern names naturally into Arabic where appropriate. Examples: "controller" → "المتحكم", "hunger_for_control" → "الحاجة للسيطرة", "the_fortress" → "القلعة", "the_audit" → "التدقيق". Use Western digits (1, 2, 3...) for any numbers. Do not include the English construct names alongside the Arabic ones.`;
 
 const MODEL_ID = "claude-sonnet-4-5";
-const MAX_TOKENS = 4000;
+// 2000 tokens ≈ 1100-1300 English words at Sonnet 4.5 tokenization. That
+// gives the model headroom to land an 800-1000 word report cleanly without
+// truncation, while keeping generation time under the 26s function budget.
+const MAX_TOKENS = 2000;
 
 interface RequestBody {
   session_id?: unknown;
@@ -162,8 +174,4 @@ export default async (req: Request): Promise<Response> => {
     generated_at: new Date().toISOString(),
     model: MODEL_ID,
   });
-};
-
-export const config = {
-  path: "/api/generate-report",
 };

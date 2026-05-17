@@ -219,6 +219,13 @@ export default function ReportPage() {
     setGenerating(true);
     setGenerateError(null);
 
+    // Match the Netlify function's 26s timeout with a small client buffer so
+    // we don't abort just before the server responds. Server cap is 26s;
+    // adding ~4s of network/TLS slack puts the client at 30s.
+    const controller = new AbortController();
+    const FETCH_TIMEOUT_MS = 30000;
+    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
     try {
       const res = await fetch("/api/generate-report", {
         method: "POST",
@@ -228,7 +235,10 @@ export default function ReportPage() {
           scoring_json: row.scoring_json,
           language: lang,
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!res.ok) {
         const text = await res.text().catch(() => "");
@@ -278,7 +288,13 @@ export default function ReportPage() {
       });
       setGenerating(false);
     } catch (e) {
-      const detail = e instanceof Error ? e.message : String(e);
+      clearTimeout(timeoutId);
+      const isAbort = e instanceof Error && e.name === "AbortError";
+      const detail = isAbort
+        ? `client_timeout_after_${FETCH_TIMEOUT_MS}ms`
+        : e instanceof Error
+        ? e.message
+        : String(e);
       // eslint-disable-next-line no-console
       console.warn("[report] generate fetch error:", detail);
       setGenerateError(detail);
