@@ -180,6 +180,9 @@ export const ar: Translations = {
     status_started: "بدأ",
     status_in_progress: "قيد التقدم",
     status_completed: "مكتمل",
+    status_scored: "تم التحليل",
+    view_report: "عرض التقرير ←",
+    welcome_named: (name) => `أهلًا، ${name}`,
   },
   callback: {
     auth_error_title: "تعذّر التحقق من رابط تسجيل الدخول. سنُعيدك إلى صفحة الدخول…",

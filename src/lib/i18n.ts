@@ -161,6 +161,9 @@ export interface Translations {
     status_started: string;
     status_in_progress: string;
     status_completed: string;
+    status_scored: string;
+    view_report: string;
+    welcome_named: (name: string) => string;
   };
   preparing: {
     title: string;

@@ -186,6 +186,9 @@ export const en: Translations = {
     status_started: "Started",
     status_in_progress: "In progress",
     status_completed: "Completed",
+    status_scored: "Scored",
+    view_report: "View Report →",
+    welcome_named: (name) => `Welcome, ${name}`,
   },
   preparing: {
     title: "Preparing your results…",
