@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import Layout from "@/components/layout/Layout";
@@ -62,9 +62,10 @@ interface ScoringRow {
 // Page
 // ---------------------------------------------------------------------------
 
-const BG_FUNCTION_URL = "/.netlify/functions/generate-report-background";
-const POLL_INTERVAL_MS = 3000;
-const POLL_MAX_DURATION_MS = 3 * 60 * 1000; // 3 minutes
+const REPORT_FN_URL = "/api/generate-report";
+// Wider than the function's 26s budget so we never abort before the server
+// either responds or itself times out. 4s of slack covers TLS + edge proxy.
+const FETCH_TIMEOUT_MS = 30000;
 
 export default function ReportPage() {
   const router = useRouter();
@@ -76,18 +77,6 @@ export default function ReportPage() {
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-
-  // Polling control — uses refs so cleanup works even when state updates
-  // race with the interval callback.
-  const pollIntervalRef = useRef<number | null>(null);
-  const pollStartRef = useRef<number>(0);
-
-  const stopPolling = () => {
-    if (pollIntervalRef.current !== null) {
-      window.clearInterval(pollIntervalRef.current);
-      pollIntervalRef.current = null;
-    }
-  };
 
   // Initial load.
   useEffect(() => {
@@ -123,20 +112,17 @@ export default function ReportPage() {
     };
   }, [router.isReady, router.query.session_id]);
 
-  // Cleanup polling on unmount.
-  useEffect(() => {
-    return () => stopPolling();
-  }, []);
-
-  // ---- Generate (fire-and-poll) -----------------------------------------
+  // ---- Generate (sync function call) -----------------------------------
   const handleGenerate = async () => {
     if (!row || generating) return;
     setGenerating(true);
     setGenerateError(null);
 
-    // Kick off the background job.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
     try {
-      const res = await fetch(BG_FUNCTION_URL, {
+      const res = await fetch(REPORT_FN_URL, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -144,64 +130,74 @@ export default function ReportPage() {
           scoring_json: row.scoring_json,
           language: lang,
         }),
+        signal: controller.signal,
       });
-      // Background functions respond 202 Accepted immediately. Anything else
-      // (4xx/5xx) means we couldn't even start the job — surface to user.
-      if (res.status !== 202 && !res.ok) {
+
+      clearTimeout(timeoutId);
+
+      if (!res.ok) {
         const text = await res.text().catch(() => "");
         // eslint-disable-next-line no-console
-        console.warn("[report] background fn rejected:", res.status, text);
+        console.warn("[report] /api/generate-report not ok:", res.status, text);
         setGenerateError(`${res.status} ${text.slice(0, 200)}`);
         setGenerating(false);
         return;
       }
-    } catch (e) {
-      const detail = e instanceof Error ? e.message : String(e);
-      // eslint-disable-next-line no-console
-      console.warn("[report] background fn fetch error:", detail);
-      setGenerateError(detail);
-      setGenerating(false);
-      return;
-    }
 
-    // Start polling scoring_results for the saved report_text.
-    pollStartRef.current = Date.now();
-    pollIntervalRef.current = window.setInterval(async () => {
-      // Hard cap so we don't poll forever.
-      if (Date.now() - pollStartRef.current > POLL_MAX_DURATION_MS) {
-        stopPolling();
-        setGenerateError("timeout_waiting_for_report");
+      const body = (await res.json()) as {
+        report_text?: string;
+        word_count?: number;
+        generated_at?: string;
+      };
+      const reportText =
+        typeof body.report_text === "string" ? body.report_text : "";
+      if (!reportText) {
+        setGenerateError("empty_response");
         setGenerating(false);
         return;
       }
+      const generatedAt = body.generated_at ?? new Date().toISOString();
 
+      // Persist to Supabase via the existing permissive RLS update policy.
+      // Best-effort: even if the write fails we still render the report
+      // from in-memory state for this session so the user gets value.
       try {
         const supabase = createClient();
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from("scoring_results")
-          .select("report_text, report_generated_at")
-          .eq("session_id", row.session_id)
-          .maybeSingle();
-
-        if (error) return; // keep polling; transient errors aren't fatal
-        if (data && data.report_text) {
-          stopPolling();
-          setRow((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  report_text: data.report_text as string,
-                  report_generated_at:
-                    (data.report_generated_at as string | null) ?? null,
-                }
-              : prev
-          );
-          setGenerating(false);
+          .update({
+            report_text: reportText,
+            report_generated_at: generatedAt,
+          })
+          .eq("session_id", row.session_id);
+        if (error) {
+          // eslint-disable-next-line no-console
+          console.warn("[report] supabase update (non-fatal):", error);
         }
-      } catch {
-        // Continue polling on transient errors.
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn("[report] supabase update threw (non-fatal):", e);
       }
-    }, POLL_INTERVAL_MS);
+
+      setRow({
+        ...row,
+        report_text: reportText,
+        report_generated_at: generatedAt,
+      });
+      setGenerating(false);
+    } catch (e) {
+      clearTimeout(timeoutId);
+      const isAbort = e instanceof Error && e.name === "AbortError";
+      const detail = isAbort
+        ? `client_timeout_after_${FETCH_TIMEOUT_MS}ms`
+        : e instanceof Error
+        ? e.message
+        : String(e);
+      // eslint-disable-next-line no-console
+      console.warn("[report] generate fetch error:", detail);
+      setGenerateError(detail);
+      setGenerating(false);
+    }
   };
 
   const handleCopy = async () => {

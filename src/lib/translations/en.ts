@@ -219,9 +219,9 @@ export const en: Translations = {
     generate_intro:
       "Generate a detailed written report based on your scoring. It takes 30–90 seconds and is yours to keep.",
     generate_button: "Generate full report",
-    generating: "Starting your report…",
+    generating: "Writing your report — this usually takes 15–25 seconds…",
     generating_background:
-      "Your report is being written — this usually takes 30–90 seconds. You can leave this page open.",
+      "Writing your report — this usually takes 15–25 seconds…",
     generate_error:
       "We couldn't generate the report. Please try again in a moment.",
     report_section_title: "Your Inner Compass report",
