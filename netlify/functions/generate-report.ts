@@ -30,7 +30,7 @@ const ARABIC_INSTRUCTION = `
 
 IMPORTANT: Write the entire report in Modern Standard Arabic. Use natural, mature, professional Arabic — never literal translation. Keep the same 10-section structure described above. Translate the signature, driver, and pattern names naturally into Arabic where appropriate. Examples: "controller" → "المتحكم", "hunger_for_control" → "الحاجة للسيطرة", "the_fortress" → "القلعة", "the_audit" → "التدقيق". Use Western digits (1, 2, 3...) for any numbers. Do not include the English construct names alongside the Arabic ones.`;
 
-const MODEL_ID = "claude-sonnet-4-20250514";
+const MODEL_ID = "claude-sonnet-4-5";
 const MAX_TOKENS = 4000;
 
 interface RequestBody {
